@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  /* Light gray background matching theme */
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Galaxy Background Effect */
+.galaxy-bg {
+  background: radial-gradient(circle at center, #0B468C 0%, #001529 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.galaxy-stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1.5px 1.5px at 40px 70px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 300px 300px;
+  opacity: 0.4;
+  animation: twinkle 5s infinite ease-in-out alternate;
+}
+
+.galaxy-rain {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  background-image: repeating-linear-gradient(45deg,
+      transparent 0,
+      transparent 50px,
+      rgba(255, 255, 255, 0.03) 50px,
+      rgba(255, 255, 255, 0.03) 51px);
+  transform: rotate(-20deg);
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0.3;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* Custom Shape for the Login Card Wave */
+.wave-clip {
+  clip-path: ellipse(80% 140% at 100% 50%);
+  /* This approximates the curve. 
+       Left side (white) will be on top.
+       Actually, better: make the white part a shape.
+       Let's try a different approach in the component using SVG or simple overlapping.
+       But I'll keep this class just in case.
+    */
+}
+
+/* Custom Inputs */
+.galaxy-input .ant-input,
+.galaxy-input .ant-input-password {
+  border-radius: 9999px !important;
+  /* Full pill */
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.galaxy-input .ant-input-affix-wrapper {
+  border-radius: 9999px !important;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 20px;
+  border-color: #e5e7eb;
+}
+
+.galaxy-input .ant-input-affix-wrapper:hover,
+.galaxy-input .ant-input-affix-wrapper:focus,
+.galaxy-input .ant-input-affix-wrapper-focused {
+  border-color: #00d2d3 !important;
+  box-shadow: 0 0 0 2px rgba(0, 210, 211, 0.2) !important;
+}
+
+/* Custom Button */
+.galaxy-btn {
+  background: linear-gradient(90deg, #00d2d3 0%, #00e0c6 100%) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  height: 44px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 210, 211, 0.4);
+}
+
+.galaxy-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
