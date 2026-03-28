@@ -1,5 +1,6 @@
-import { FC } from "react";
+import type { FC } from "react";
 import { Link } from "react-router-dom";
+import { ROUTES } from "../router/routes";
 import "./LandingPage.css";
 
 const LandingPage: FC = () => {
@@ -13,7 +14,7 @@ const LandingPage: FC = () => {
           <a href="#about">About</a>
           <a href="#features">Features</a>
 
-          <Link className="login-btn" to="/login">
+          <Link className="login-btn" to={ROUTES.login}>
             Login
           </Link>
         </div>
@@ -28,7 +29,7 @@ const LandingPage: FC = () => {
         </p>
 
         <div className="hero-actions">
-          <Link to="/login" className="primary-btn">Start Now</Link>
+          <Link to={ROUTES.login} className="primary-btn">Start Now</Link>
           <a href="#about" className="outline-btn">Learn More</a>
         </div>
       </section>

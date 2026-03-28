@@ -12,21 +12,33 @@ import {
   Tooltip,
   Divider,
 } from 'antd';
+import type { TableProps } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { queryKeys } from '../../api/queryKeys';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
 import CardWidget from '../../components/common/CardWidget';
 import { tenantApi } from '../../api/tenantApi';
-import type { TenantDto, PagedResult } from '../../types/tenant';
+import type {
+  CreateTenantRequest,
+  PagedResult,
+  TenantDto,
+  TenantQueryParams,
+  UpdateTenantRequest,
+} from '../../types/tenant';
 
-interface TenantsQueryKey {
-  pageNumber: number;
-  pageSize: number;
-  search: string;
-  sortBy?: string;
-  isAscending?: boolean;
+interface TenantFormValues {
+  name: string;
+  subDomain: string;
+  logoURL?: string;
+  isActive: boolean;
+  storeSetting: {
+    currency: string;
+    theme: string;
+    supportPhone: string;
+  };
 }
 
 const TenantsPage: React.FC = () => {
@@ -42,21 +54,18 @@ const TenantsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<TenantDto | null>(null);
 
-  const queryKey: [string, TenantsQueryKey] = [
-    'tenants',
-    { pageNumber, pageSize, search, sortBy, isAscending },
-  ];
+  const tenantQueryParams: TenantQueryParams = {
+    pageNumber,
+    pageSize,
+    search: search || undefined,
+    sortBy,
+    isAscending,
+  };
 
   const { data, isLoading } = useQuery<PagedResult<TenantDto>>({
-    queryKey,
+    queryKey: queryKeys.tenants.list(tenantQueryParams),
     queryFn: async () => {
-      const res = await tenantApi.getPaged({
-        pageNumber,
-        pageSize,
-        search: search || undefined,
-        sortBy,
-        isAscending,
-      });
+      const res = await tenantApi.getPaged(tenantQueryParams);
       return res.data;
     },
     placeholderData: (previousData) => previousData,
@@ -64,9 +73,9 @@ const TenantsPage: React.FC = () => {
 
   // ---------- Create / Update ----------
   const upsertMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: CreateTenantRequest | UpdateTenantRequest) => {
       // نقرر هنا فقط بناءً على وجود Id
-      if (payload.id) {
+      if ('id' in payload) {
         return tenantApi.update(payload);
       }
       return tenantApi.create(payload);
@@ -76,7 +85,7 @@ const TenantsPage: React.FC = () => {
       setIsModalOpen(false);
       setEditingTenant(null);
       form.resetFields();
-      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
     },
     onError: () => {
       message.error('Failed to save tenant');
@@ -88,7 +97,7 @@ const TenantsPage: React.FC = () => {
     mutationFn: (id: string) => tenantApi.delete(id),
     onSuccess: () => {
       message.success('Tenant deleted');
-      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
     },
     onError: () => {
       message.error('Failed to delete tenant');
@@ -136,8 +145,8 @@ const TenantsPage: React.FC = () => {
   const mapStatus = (isActive: boolean) => (isActive ? 0 : 1);
 
   // هنا نبني الـ payload النهائي اللي يطابق CreateTenantRequestDto + StoreSettingDto
-  const handleFormFinish = (values: any) => {
-    const basePayload = {
+  const handleFormFinish = (values: TenantFormValues) => {
+    const basePayload: CreateTenantRequest = {
       name: values.name,
       subDomain: values.subDomain,
       status: mapStatus(values.isActive),
@@ -169,15 +178,15 @@ const TenantsPage: React.FC = () => {
     });
   };
 
-  const handleTableChange = (
-    pagination: TablePaginationConfig,
-    _filters: any,
-    sorter: any
+  const handleTableChange: NonNullable<TableProps<TenantDto>['onChange']> = (
+    pagination,
+    _filters,
+    sorter
   ) => {
     if (pagination.current) setPageNumber(pagination.current);
     if (pagination.pageSize) setPageSize(pagination.pageSize);
 
-    if (!Array.isArray(sorter) && sorter?.field) {
+    if (!Array.isArray(sorter) && sorter.field) {
       const sortField = sorter.field as string;
       setSortBy(sortField);
       setIsAscending(sorter.order === 'ascend');

@@ -17,6 +17,9 @@ import LandingPage from '../pages/LandingPage';
 import SaUsersPage from "../pages/sa/SaUsersPage";
 import TenantsPage from '../pages/sa/TenantsPage';
 import { useAuth } from '../context/AuthContext';
+import ProtectedRoute from './ProtectedRoute';
+import { APP_ROLES, getDefaultRouteForRole } from '../types/auth';
+import { ROUTES } from './routes';
 
 // tenantAdminMenu
 import DashboardPage from "../pages/admin/DashboardPage";
@@ -35,25 +38,18 @@ import StoreOrdersPage from '../pages/store/StoreOrdersPage';
 // --- Menu Definitions ---
 
 const superAdminMenu = [
-    { key: '/sa/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/sa/tenants', icon: <GlobalOutlined />, label: 'Tenants' },
-    { key: '/sa/users',   icon: <UserOutlined />, label: 'Users' },  
-    { key: '/sa/settings', icon: <SettingOutlined />, label: 'System Settings' },
+    { key: ROUTES.superAdmin.dashboard, icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: ROUTES.superAdmin.tenants, icon: <GlobalOutlined />, label: 'Tenants' },
+    { key: ROUTES.superAdmin.users,   icon: <UserOutlined />, label: 'Users' },  
+    { key: ROUTES.superAdmin.settings, icon: <SettingOutlined />, label: 'System Settings' },
 ];
 
 const tenantAdminMenu = [
-    { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/admin/users', icon: <UserOutlined />, label: 'Users' },
-    { key: '/admin/products', icon: <ShoppingOutlined />, label: 'Products' },
-    { key: '/admin/orders', icon: <FileTextOutlined />, label: 'Orders' },
-    { key: '/admin/settings', icon: <SettingOutlined />, label: 'Settings' },
-];
-
-const tenantUserMenu = [
-    { key: '/app/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/app/products', icon: <ShoppingOutlined />, label: 'Products' },
-    { key: '/app/orders', icon: <FileTextOutlined />, label: 'My Orders' },
-    { key: '/app/profile', icon: <UserOutlined />, label: 'Profile' },
+    { key: ROUTES.tenantAdmin.dashboard, icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: ROUTES.tenantAdmin.users, icon: <UserOutlined />, label: 'Users' },
+    { key: ROUTES.tenantAdmin.products, icon: <ShoppingOutlined />, label: 'Products' },
+    { key: ROUTES.tenantAdmin.orders, icon: <FileTextOutlined />, label: 'Orders' },
+    { key: ROUTES.tenantAdmin.settings, icon: <SettingOutlined />, label: 'Settings' },
 ];
 
 // --- Placeholder Page Component ---
@@ -93,24 +89,17 @@ const PlaceholderPage: React.FC<{ title: string }> = ({ title }) => (
 
 const AppRouter: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  const role = user?.role ?? '';
-
-  const getDefaultDashboard = () => {
-    if (role === 'SystemAdmin') return '/sa/dashboard';
-    if (role === 'TenantAdmin') return '/admin/dashboard';
-    if (role === 'User') return '/store/products';
-    return '/login';
-  };
+  const defaultRoute = getDefaultRouteForRole(user?.role);
 
   return (
     <BrowserRouter>
       <Routes>
         {/* Root: حسب عامل Login أو لا */}
         <Route
-          path="/"
+          path={ROUTES.root}
           element={
             isAuthenticated
-              ? <Navigate to={getDefaultDashboard()} replace />
+              ? <Navigate to={defaultRoute} replace />
               : <LandingPage />
           }
         />
@@ -118,40 +107,46 @@ const AppRouter: React.FC = () => {
         {/* Login */}
         <Route element={<AuthLayout />}>
           <Route
-            path="/login"
+            path={ROUTES.login}
             element={
               isAuthenticated
-                ? <Navigate to={getDefaultDashboard()} replace />
+                ? <Navigate to={defaultRoute} replace />
                 : <LoginPage />
             }
           />
         </Route>
 
        {/* Super Admin Routes */}
-        <Route path="/sa" element={<BasicLayout menuItems={superAdminMenu} />}>
-            <Route index element={<Navigate to="/sa/tenants" replace />} />
-             <Route path="tenants" element={<TenantsPage />} />
+        <Route element={<ProtectedRoute allowedRoles={[APP_ROLES.systemAdmin]} />}>
+          <Route path={ROUTES.superAdmin.root} element={<BasicLayout menuItems={superAdminMenu} />}>
+              <Route index element={<Navigate to={ROUTES.superAdmin.tenants} replace />} />
+               <Route path="tenants" element={<TenantsPage />} />
 
-            <Route path="dashboard" element={<PlaceholderPage title="Super Admin Dashboard" />} />
-            <Route path="users" element={<SaUsersPage />} />
-            <Route path="settings" element={<PlaceholderPage title="System Settings" />} />
+              <Route path="dashboard" element={<PlaceholderPage title="Super Admin Dashboard" />} />
+              <Route path="users" element={<SaUsersPage />} />
+              <Route path="settings" element={<PlaceholderPage title="System Settings" />} />
+          </Route>
         </Route>
 
 
-       <Route path="/admin" element={<BasicLayout menuItems={tenantAdminMenu} />}>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="orders" element={<OrdersPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-     </Route>
+       <Route element={<ProtectedRoute allowedRoles={[APP_ROLES.tenantAdmin]} />}>
+         <Route path={ROUTES.tenantAdmin.root} element={<BasicLayout menuItems={tenantAdminMenu} />}>
+                  <Route index element={<Navigate to={ROUTES.tenantAdmin.dashboard} replace />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="users" element={<UsersPage />} />
+                  <Route path="products" element={<ProductsPage />} />
+                  <Route path="orders" element={<OrdersPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+       </Route>
+      </Route>
 
         {/* Tenant User Routes */}
-            <Route path="/store" element={<StoreLayout />}>
-            <Route index element={<Navigate to="products" replace />} />
-            <Route path="products" element={<StoreProductsPage />} />
-            <Route path="orders" element={<StoreOrdersPage />} />
+            <Route element={<ProtectedRoute allowedRoles={[APP_ROLES.tenantUser]} />}>
+              <Route path={ROUTES.store.root} element={<StoreLayout />}>
+              <Route index element={<Navigate to="products" replace />} />
+              <Route path="products" element={<StoreProductsPage />} />
+              <Route path="orders" element={<StoreOrdersPage />} />
+              </Route>
             </Route>
 
         {/* 404 */}

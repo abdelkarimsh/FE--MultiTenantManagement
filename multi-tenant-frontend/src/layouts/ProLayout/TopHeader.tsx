@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../router/routes';
 
 const { Header } = Layout;
 
@@ -25,7 +26,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate(ROUTES.login);
     };
 
     const userMenu = {

@@ -3,6 +3,7 @@ import { Layout, Menu, theme } from 'antd';
 import { Link, useLocation , useNavigate } from 'react-router-dom';
 import { RocketOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { ROUTES } from '../../router/routes';
 
 const { Sider } = Layout;
 
@@ -40,7 +41,7 @@ const SiderMenu: React.FC<SiderMenuProps> = ({ collapsed, onCollapse, menuItems 
                 className="h-16 flex items-center justify-center relative over-flow-hidden text-center transition-all duration-300"
                 style={{ borderBottom: '1px solid #f0f0f0' }}
             >
-                <Link to="/" className="flex items-center justify-center gap-3 text-inherit no-underline">
+                <Link to={ROUTES.root} className="flex items-center justify-center gap-3 text-inherit no-underline">
                     <div className={`transition-all duration-300 ${collapsed ? 'scale-0 w-0' : 'scale-100'}`}>
                         <div className="flex items-center gap-2">
                             <div className="bg-primary/10 p-1.5 rounded-lg text-primary">

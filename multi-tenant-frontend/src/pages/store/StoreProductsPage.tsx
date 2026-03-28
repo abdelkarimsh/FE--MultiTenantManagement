@@ -4,32 +4,32 @@ import React, { useState, useMemo } from 'react';
 import { Card, Input, Tag, Button, Pagination, Spin, Empty } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '../../api/queryKeys';
 import { productsApi } from '../../api/productsApi';
 import { useAuth } from '../../context/AuthContext';
-import type { ProductDto } from '../../types/products';
-import type { PagedResult } from '../../types/common';
+import type { ProductDto, PagedResult } from '../../api/productsApi';
 
 const { Meta } = Card;
 
 const StoreProductsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { currentTenantId } = useAuth();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(8);
   const [search, setSearch] = useState<string>('');
 
-  const currentTenantId = user?.tenantId ?? null;
-
   const { data, isLoading } = useQuery<PagedResult<ProductDto>>({
-    queryKey: ['store-products', currentTenantId, pageNumber, pageSize, search],
+    queryKey: queryKeys.storeProducts.list(currentTenantId, pageNumber, pageSize, search),
     queryFn: () =>
       productsApi.getProducts(
         currentTenantId as string,
         pageNumber,
         pageSize,
+        undefined,
+        true,
         search || undefined
       ),
     enabled: !!currentTenantId,
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const products = data?.items ?? [];

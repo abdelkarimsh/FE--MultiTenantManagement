@@ -1,4 +1,4 @@
-// src/pages/admin/AdminUsersPage.tsx
+// src/pages/admin/UsersPage.tsx
 
 import React, { useState } from 'react';
 import {
@@ -20,7 +20,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { queryKeys } from '../../api/queryKeys';
 import { usersApi } from '../../api/usersApi';
+import { APP_ROLES, normalizeRole } from '../../types/auth';
 import type { UserDto, CreateUserRequest, UpdateUserRequest } from '../../types/users';
 
 // لو عندك AuthContext فيه tenantId/currentTenant
@@ -29,19 +31,18 @@ import { useAuth } from '../../context/AuthContext';
 const { Title } = Typography;
 const { Option } = Select;
 
-const AdminUsersPage: React.FC = () => {
+const UsersPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDto | null>(null);
   const [form] = Form.useForm();
 
   // 👇 نفترض إن عندك tenantId في الـ auth
-  const { user } = useAuth();
-  const currentTenantId = user?.tenantId ?? null;
+  const { currentTenantId } = useAuth();
 
   // 🔹 قراءة المستخدمين لهذا التينانت فقط
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin-users', currentTenantId],
+    queryKey: queryKeys.tenantUsers.list(currentTenantId),
     queryFn: () => usersApi.getUsers(currentTenantId || undefined),
     enabled: !!currentTenantId, // استنى لما يكون tenantId موجود
   });
@@ -51,7 +52,7 @@ const AdminUsersPage: React.FC = () => {
     mutationFn: (payload: CreateUserRequest) => usersApi.createUser(payload),
     onSuccess: () => {
       message.success('User created successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-users', currentTenantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenantUsers.all });
       setIsModalOpen(false);
       form.resetFields();
     },
@@ -67,7 +68,7 @@ const AdminUsersPage: React.FC = () => {
       usersApi.updateUser(data.id, data.payload),
     onSuccess: () => {
       message.success('User updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-users', currentTenantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenantUsers.all });
       setIsModalOpen(false);
       setEditingUser(null);
       form.resetFields();
@@ -83,7 +84,7 @@ const AdminUsersPage: React.FC = () => {
     mutationFn: (id: string) => usersApi.deleteUser(id),
     onSuccess: () => {
       message.success('User deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-users', currentTenantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenantUsers.all });
     },
     onError: (error: any) => {
       console.error(error);
@@ -104,7 +105,7 @@ const AdminUsersPage: React.FC = () => {
     form.setFieldsValue({
       email: user.email,
       phoneNumber: user.phoneNumber,
-      role: user.roles?.[0] ?? 'User',
+      role: normalizeRole(user.roles?.[0]) ?? APP_ROLES.tenantUser,
     });
     setIsModalOpen(true);
   };
@@ -248,7 +249,7 @@ const AdminUsersPage: React.FC = () => {
           form={form}
           layout="vertical"
           initialValues={{
-            role: 'User',
+            role: APP_ROLES.tenantUser,
           }}
         >
           <Form.Item
@@ -283,8 +284,8 @@ const AdminUsersPage: React.FC = () => {
             rules={[{ required: true, message: 'Role is required' }]}
           >
             <Select placeholder="Select role">
-              <Option value="TenantAdmin">TenantAdmin</Option>
-              <Option value="User">User</Option>
+              <Option value={APP_ROLES.tenantAdmin}>{APP_ROLES.tenantAdmin}</Option>
+              <Option value={APP_ROLES.tenantUser}>{APP_ROLES.tenantUser}</Option>
             </Select>
           </Form.Item>
         </Form>
@@ -293,4 +294,4 @@ const AdminUsersPage: React.FC = () => {
   );
 };
 
-export default AdminUsersPage;
+export default UsersPage;

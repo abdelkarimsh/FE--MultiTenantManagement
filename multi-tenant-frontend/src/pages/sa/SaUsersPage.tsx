@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import {
   Card,
-  Row,
-  Col,
   Typography,
   Button,
   Table,
@@ -21,10 +19,12 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../api/queryKeys';
 import { usersApi } from '../../api/usersApi';
+import { APP_ROLES, normalizeRole } from '../../types/auth';
 import type { UserDto, CreateUserRequest, UpdateUserRequest } from '../../types/users';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 const SaUsersPage: React.FC = () => {
@@ -36,7 +36,7 @@ const SaUsersPage: React.FC = () => {
 
   // 🔹 قراءة جميع المستخدمين (Super Admin – كل التيننتس)
   const { data: users, isLoading } = useQuery({
-    queryKey: ['sa-users'],
+    queryKey: queryKeys.superAdminUsers.all,
     queryFn: () => usersApi.getUsers(), // ممكن تمرر tenantId هنا لو بدك فلترة
   });
 
@@ -45,7 +45,7 @@ const SaUsersPage: React.FC = () => {
     mutationFn: (payload: CreateUserRequest) => usersApi.createUser(payload),
     onSuccess: () => {
       message.success('User created successfully');
-      queryClient.invalidateQueries({ queryKey: ['sa-users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
       setIsModalOpen(false);
       form.resetFields();
     },
@@ -61,7 +61,7 @@ const SaUsersPage: React.FC = () => {
       usersApi.updateUser(data.id, data.payload),
     onSuccess: () => {
       message.success('User updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['sa-users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
       setIsModalOpen(false);
       setEditingUser(null);
       form.resetFields();
@@ -77,7 +77,7 @@ const SaUsersPage: React.FC = () => {
     mutationFn: (id: string) => usersApi.deleteUser(id),
     onSuccess: () => {
       message.success('User deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['sa-users'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
     },
     onError: (error: any) => {
       console.error(error);
@@ -99,7 +99,7 @@ const SaUsersPage: React.FC = () => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       tenantId: user.tenantId,
-      role: user.roles?.[0] ?? 'User',
+      role: normalizeRole(user.roles?.[0]) ?? APP_ROLES.tenantUser,
     });
     setIsModalOpen(true);
   };
@@ -236,7 +236,7 @@ const SaUsersPage: React.FC = () => {
           form={form}
           layout="vertical"
           initialValues={{
-            role: 'TenantAdmin',
+            role: APP_ROLES.tenantAdmin,
           }}
         >
           <Form.Item
@@ -275,9 +275,9 @@ const SaUsersPage: React.FC = () => {
             rules={[{ required: true, message: 'Role is required' }]}
           >
             <Select placeholder="Select role">
-              <Option value="SystemAdmin">SystemAdmin</Option>
-              <Option value="TenantAdmin">TenantAdmin</Option>
-              <Option value="User">User</Option>
+              <Option value={APP_ROLES.systemAdmin}>{APP_ROLES.systemAdmin}</Option>
+              <Option value={APP_ROLES.tenantAdmin}>{APP_ROLES.tenantAdmin}</Option>
+              <Option value={APP_ROLES.tenantUser}>{APP_ROLES.tenantUser}</Option>
             </Select>
           </Form.Item>
         </Form>

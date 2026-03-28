@@ -2,6 +2,7 @@
 import React from "react";
 import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ROUTES } from "../router/routes";
 
 const StoreLayout: React.FC = () => {
   const { user } = useAuth();
@@ -11,7 +12,7 @@ const StoreLayout: React.FC = () => {
       <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6">
         <div className="flex items-center gap-2">
           <span className="text-blue-500 text-xl">🔔</span>
-          <Link to="/" className="font-semibold text-lg">
+          <Link to={ROUTES.root} className="font-semibold text-lg">
             MultiTenant
           </Link>
         </div>

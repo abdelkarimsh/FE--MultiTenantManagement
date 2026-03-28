@@ -1,4 +1,9 @@
     import React, { createContext, useContext, useState, useEffect } from 'react';
+    import {
+        AUTH_STORAGE_KEYS,
+        clearStoredAuth,
+        normalizeRole,
+    } from '../types/auth';
     import type { User, LoginResponse } from '../types/auth';
 
     interface AuthContextType {
@@ -20,13 +25,27 @@
         const currentTenantId = user?.tenantId ?? null;
 
         useEffect(() => {
-            const storedToken = localStorage.getItem('accessToken');
-            const storedUser = localStorage.getItem('user');
+            const storedToken = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
+            const storedUser = localStorage.getItem(AUTH_STORAGE_KEYS.user);
 
             if (storedToken && storedUser) {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-                setIsAuthenticated(true);
+                try {
+                    const parsedUser = JSON.parse(storedUser) as User;
+                    const normalizedRole = normalizeRole(parsedUser.role);
+
+                    if (normalizedRole) {
+                        setToken(storedToken);
+                        setUser({
+                            ...parsedUser,
+                            role: normalizedRole,
+                        });
+                        setIsAuthenticated(true);
+                    } else {
+                        clearStoredAuth();
+                    }
+                } catch {
+                    clearStoredAuth();
+                }
             }
             setIsLoading(false);
         }, []);
@@ -36,17 +55,15 @@
                 email: data.email,
                 fullName: data.fullName,
                 tenantId: data.tenantId,
-                role: data.userRole,
+                role: normalizeRole(data.userRole),
             };
 
             setToken(data.accessToken);
             setUser(userData);
             setIsAuthenticated(true);
 
-        console.log('LOGIN RESPONSE', data);
-
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem(AUTH_STORAGE_KEYS.accessToken, data.accessToken);
+        localStorage.setItem(AUTH_STORAGE_KEYS.user, JSON.stringify(userData));
         };
 
         const logout = () => {
@@ -54,8 +71,7 @@
             setUser(null);
             setIsAuthenticated(false);
 
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('user');
+            clearStoredAuth();
         };
 
         if (isLoading) {

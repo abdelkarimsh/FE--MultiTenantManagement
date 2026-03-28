@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { AUTH_STORAGE_KEYS, clearStoredAuth } from '../types/auth';
+import { ROUTES } from '../router/routes';
 
 // Create an Axios instance
 const httpClient = axios.create({
@@ -12,7 +14,7 @@ const httpClient = axios.create({
 // Request interceptor for API calls
 httpClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
 
         // We do NOT handle tenantId from storage here based on the new requirements (implied context)
         // But for now, user asked to keep it consistent. 
@@ -37,8 +39,11 @@ httpClient.interceptors.response.use(
     async (error) => {
         // Handle specific error cases (e.g., 401 Unauthorized)
         if (error.response && error.response.status === 401) {
-            // Optional: Dispatch logout event or redirect
-            // For now, we just reject to let the caller handle it or Context handle it
+            clearStoredAuth();
+
+            if (typeof window !== 'undefined' && window.location.pathname !== ROUTES.login) {
+                window.location.replace(ROUTES.login);
+            }
         }
         return Promise.reject(error);
     }

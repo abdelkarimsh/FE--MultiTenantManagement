@@ -5,6 +5,12 @@ export interface TenantStoreSetting {
   supportPhone: string;
 }
 
+export interface TenantStoreSettingRequest {
+  currency: string;
+  theme: string;
+  supportPhone: string;
+}
+
 export interface TenantDto {
   id: string;
   name: string;
@@ -32,4 +38,16 @@ export interface TenantQueryParams {
   isAscending?: boolean;
   search?: string;
   isActive?: boolean | null;
+}
+
+export interface CreateTenantRequest {
+  name: string;
+  subDomain: string;
+  status: number;
+  logoURL?: string;
+  storeSetting: TenantStoreSettingRequest;
+}
+
+export interface UpdateTenantRequest extends CreateTenantRequest {
+  id: string;
 }

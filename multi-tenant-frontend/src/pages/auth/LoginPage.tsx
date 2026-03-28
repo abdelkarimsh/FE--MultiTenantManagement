@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
+import { getDefaultRouteForRole } from '../../types/auth';
 import type { LoginRequest } from '../../types/auth';
 
 const { Title, Text } = Typography;
@@ -21,17 +22,7 @@ const LoginPage: React.FC = () => {
         onSuccess: (data) => {
             message.success('Login successful!');
             login(data);
-
-           const role = data.userRole || "";
-           if (role === 'SystemAdmin') {
-                navigate('/sa/tenants');
-            } else if (role === 'TenantAdmin') {
-                navigate('/admin/dashboard');
-            } else if (role === 'User') {
-                navigate('/store/products');
-            } else {
-                navigate('/store/products');
-            }
+            navigate(getDefaultRouteForRole(data.userRole));
         },
         onError: (error: any) => {
             message.error(error.response?.data?.message || 'Login failed.');

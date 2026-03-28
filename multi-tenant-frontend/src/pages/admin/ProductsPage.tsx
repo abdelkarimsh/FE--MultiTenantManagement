@@ -1,6 +1,6 @@
-// src/pages/admin/AdminProductsPage.tsx
+// src/pages/admin/ProductsPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   Typography,
@@ -21,6 +21,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { queryKeys } from '../../api/queryKeys';
 import {
   productsApi,
   type ProductDto,
@@ -33,11 +34,10 @@ import { useAuth } from '../../context/AuthContext';
 
 const { Title } = Typography;
 
-const AdminProductsPage: React.FC = () => {
+const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
-  const { user } = useAuth();
-  const currentTenantId = user?.tenantId ?? null;
+  const { currentTenantId } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
@@ -47,7 +47,7 @@ const AdminProductsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-products', currentTenantId, pageNumber, pageSize],
+    queryKey: queryKeys.tenantProducts.list(currentTenantId, pageNumber, pageSize),
     queryFn: () =>
       productsApi.getProducts(currentTenantId as string, pageNumber, pageSize),
     enabled: !!currentTenantId,
@@ -64,7 +64,7 @@ const AdminProductsPage: React.FC = () => {
     onSuccess: () => {
       message.success('Product created successfully');
       queryClient.invalidateQueries({
-        queryKey: ['admin-products', currentTenantId],
+        queryKey: queryKeys.tenantProducts.all,
       });
       setIsModalOpen(false);
       form.resetFields();
@@ -86,7 +86,7 @@ const AdminProductsPage: React.FC = () => {
     onSuccess: () => {
       message.success('Product updated successfully');
       queryClient.invalidateQueries({
-        queryKey: ['admin-products', currentTenantId],
+        queryKey: queryKeys.tenantProducts.all,
       });
       setIsModalOpen(false);
       setEditingProduct(null);
@@ -105,7 +105,7 @@ const AdminProductsPage: React.FC = () => {
     onSuccess: () => {
       message.success('Product deleted successfully');
       queryClient.invalidateQueries({
-        queryKey: ['admin-products', currentTenantId],
+        queryKey: queryKeys.tenantProducts.all,
       });
     },
     onError: (error: any) => {
@@ -339,4 +339,4 @@ const AdminProductsPage: React.FC = () => {
   );
 };
 
-export default AdminProductsPage;
+export default ProductsPage;

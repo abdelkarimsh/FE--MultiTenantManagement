@@ -1,5 +1,11 @@
 import httpClient from './httpClient';
-import type { TenantDto, PagedResult, TenantQueryParams } from '../types/tenant';
+import type {
+  CreateTenantRequest,
+  PagedResult,
+  TenantDto,
+  TenantQueryParams,
+  UpdateTenantRequest,
+} from '../types/tenant';
 
 export const tenantApi = {
   getPaged: (params: TenantQueryParams) =>
@@ -7,10 +13,10 @@ export const tenantApi = {
       params,
     }),
 
-  create: (data: Partial<TenantDto>) =>
+  create: (data: CreateTenantRequest) =>
     httpClient.post('/Tenants/CreateTenant', data),
 
-  update: (data: Partial<TenantDto>) =>
+  update: (data: UpdateTenantRequest) =>
     httpClient.put('/Tenants/UpdateTenant', data),
 
   delete: (id: string) =>
