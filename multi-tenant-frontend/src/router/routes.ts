@@ -14,11 +14,16 @@ export const ROUTES = {
     users: '/admin/users',
     products: '/admin/products',
     orders: '/admin/orders',
+    orderDetails: (orderId: string) => `/admin/orders/${orderId}`,
     settings: '/admin/settings',
   },
   store: {
     root: '/store',
     products: '/store/products',
+    cart: '/store/cart',
+    checkout: '/store/checkout',
     orders: '/store/orders',
+    orderDetails: (orderId: string) => `/store/orders/${orderId}`,
+    settings: '/store/settings',
   },
 } as const;

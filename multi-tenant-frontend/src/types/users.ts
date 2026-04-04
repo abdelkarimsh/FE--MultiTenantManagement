@@ -4,6 +4,7 @@ export interface UserDto {
   email: string;
   phoneNumber?: string | null;
   tenantId?: string | null;
+  tenant?: string | null;
   roles: string[];  
 }
 

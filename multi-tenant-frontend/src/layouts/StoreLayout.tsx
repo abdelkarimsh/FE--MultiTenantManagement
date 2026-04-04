@@ -1,45 +1,57 @@
-// src/layouts/StoreLayout.tsx
 import React from "react";
-import { Outlet, Link } from "react-router-dom";
+import { Outlet } from "react-router-dom";
+import StoreErrorState from "../components/store/StoreErrorState";
+import StoreFooter from "../components/store/StoreFooter";
+import StoreHeader from "../components/store/StoreHeader";
+import StoreLoadingState from "../components/store/StoreLoadingState";
+import StorePageContainer from "../components/store/StorePageContainer";
+import { StoreProvider, useStore } from "../context/StoreContext";
 import { useAuth } from "../context/AuthContext";
-import { ROUTES } from "../router/routes";
+import { CartProvider } from "../context/CartContext";
 
-const StoreLayout: React.FC = () => {
+const StoreLayoutContent: React.FC = () => {
   const { user } = useAuth();
+  const { tenant, isLoading, isError, refetch } = useStore();
+
+  if (isLoading) {
+    return <StoreLoadingState />;
+  }
+
+  if (isError || !tenant) {
+    return <StoreErrorState onRetry={() => void refetch()} />;
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          <span className="text-blue-500 text-xl">🔔</span>
-          <Link to={ROUTES.root} className="font-semibold text-lg">
-            MultiTenant
-          </Link>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <StoreHeader tenant={tenant} user={user} />
 
-        {/* Tenant + User info */}
-        <div className="flex items-center gap-4">
-          <button className="px-3 py-1 rounded-full bg-slate-100 text-sm text-slate-700">
-            {/* {currentTenantName ?? "Current Tenant"} */}
-            Current Tenant
-          </button>
-
-          {user && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm">
-                {user.email?.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm text-slate-800">{user.email}</span>
+      {!tenant.isActive && (
+        <div className="border-b border-amber-200 bg-amber-50 py-3 text-sm text-amber-800">
+          <StorePageContainer>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <span>Store status: {tenant.statusLabel}</span>
+              <span>The storefront remains visible while status-specific handling is prepared.</span>
             </div>
-          )}
+          </StorePageContainer>
         </div>
-      </header>
+      )}
 
-
-      <main className="flex-1 px-8 py-6">
+      <main className="flex-1">
         <Outlet />
       </main>
+
+      <StoreFooter tenant={tenant} />
     </div>
+  );
+};
+
+const StoreLayout: React.FC = () => {
+  return (
+    <StoreProvider>
+      <CartProvider>
+        <StoreLayoutContent />
+      </CartProvider>
+    </StoreProvider>
   );
 };
 

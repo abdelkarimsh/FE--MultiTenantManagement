@@ -76,7 +76,7 @@ const TenantsPage: React.FC = () => {
     mutationFn: async (payload: CreateTenantRequest | UpdateTenantRequest) => {
       // نقرر هنا فقط بناءً على وجود Id
       if ('id' in payload) {
-        return tenantApi.update(payload);
+        return tenantApi.update(payload.id, payload);
       }
       return tenantApi.create(payload);
     },
@@ -159,10 +159,12 @@ const TenantsPage: React.FC = () => {
     };
 
     if (editingTenant) {
-      upsertMutation.mutate({
+      const updatePayload: UpdateTenantRequest = {
         ...basePayload,
         id: editingTenant.id,
-      });
+      };
+
+      upsertMutation.mutate(updatePayload);
     } else {
       upsertMutation.mutate(basePayload);
     }

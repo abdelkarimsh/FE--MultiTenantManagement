@@ -142,20 +142,20 @@ const SaUsersPage: React.FC = () => {
       title: 'Phone',
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
-      render: (phone?: string | null) => phone ?? '—',
+      render: (phone?: string | null) => phone ?? '\u2014',
     },
     {
-      title: 'Tenant Id',
-      dataIndex: 'tenantId',
-      key: 'tenantId',
-      render: (tenantId?: string | null) => tenantId ?? '—',
+      title: 'Tenant',
+      dataIndex: 'tenant',
+      key: 'tenant',
+      render: (tenant?: string | null) => tenant?.trim() || '\u2014',
     },
     {
       title: 'Role',
       dataIndex: 'roles',
       key: 'roles',
       render: (roles: string[]) =>
-        roles && roles.length > 0 ? <Tag>{roles[0]}</Tag> : '—',
+        roles && roles.length > 0 ? <Tag>{roles[0]}</Tag> : '\u2014',
     },
     {
       title: 'Actions',

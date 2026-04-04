@@ -14,11 +14,38 @@ export interface TenantStoreSettingRequest {
 export interface TenantDto {
   id: string;
   name: string;
-  status: 'Active' | 'Disabled' | string; // خليها string لو فيه حالات أكثر
-  logoURL: string;
+  status: 'Active' | 'Disabled' | string;
+  logoURL?: string;
+  attachmentId?: string | null;
+  attachmentUrl?: string | null;
+  subDomain: string;
+  createdAtUtc?: string;
+  storeSetting: TenantStoreSetting | null;
+}
+
+export interface TenantStorefrontDto {
+  id: string;
+  name: string;
+  status: string;
+  logoURL: string | null;
+  attachmentId: string | null;
+  attachmentUrl: string | null;
   subDomain: string;
   createdAtUtc: string;
   storeSetting: TenantStoreSetting | null;
+}
+
+export interface StorefrontTenantView {
+  id: string;
+  displayName: string;
+  logoUrl: string | null;
+  currency: string | null;
+  theme: string | null;
+  supportPhone: string | null;
+  subDomain: string | null;
+  status: string | null;
+  statusLabel: string;
+  isActive: boolean;
 }
 
 export interface PagedResult<T> {
@@ -51,3 +78,33 @@ export interface CreateTenantRequest {
 export interface UpdateTenantRequest extends CreateTenantRequest {
   id: string;
 }
+
+export interface TenantSettingsUpdateRequest {
+  id: string;
+  name: string;
+  status: number;
+  logoURL?: string;
+  attachmentId?: string | null;
+  attachmentUrl?: string | null;
+  subDomain: string;
+  createdAtUtc?: string;
+  storeSetting: TenantStoreSetting;
+}
+
+export const tenantStatusToCode = (status: string | number | null | undefined): number => {
+  if (typeof status === 'number' && Number.isFinite(status)) {
+    return status;
+  }
+
+  const normalizedStatus = String(status ?? '').trim().toLowerCase();
+  if (normalizedStatus === 'active') return 0;
+  if (normalizedStatus === 'inactive' || normalizedStatus === 'disabled') return 1;
+  if (normalizedStatus === 'suspended') return 2;
+
+  const parsed = Number(normalizedStatus);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  return 0;
+};

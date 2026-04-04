@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, Avatar, Dropdown, Space, theme } from 'antd';
+import { useQuery } from '@tanstack/react-query';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -11,6 +12,9 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../router/routes';
+import { APP_ROLES, normalizeRole } from '../../types/auth';
+import { queryKeys } from '../../api/queryKeys';
+import { tenantApi } from '../../api/tenantApi';
 
 const { Header } = Layout;
 
@@ -21,8 +25,18 @@ interface TopHeaderProps {
 
 const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
     const { token: themeToken } = theme.useToken();
-    const { user, logout } = useAuth();
+    const { user, logout, currentTenantId } = useAuth();
     const navigate = useNavigate();
+    const role = normalizeRole(user?.role);
+
+    const { data: tenantData } = useQuery({
+        queryKey: queryKeys.tenants.byId(currentTenantId),
+        queryFn: () => tenantApi.getTenantById(currentTenantId as string),
+        enabled: !!currentTenantId && role === APP_ROLES.tenantAdmin,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const tenantDisplayName = tenantData?.name?.trim() || 'Tenant';
 
     const handleLogout = () => {
         logout();
@@ -30,6 +44,15 @@ const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
     };
 
     const userMenu = {
+        onClick: ({ key }: { key: string }) => {
+            if (key === 'settings') {
+                if (role === APP_ROLES.tenantAdmin || role === APP_ROLES.tenantUser) {
+                    navigate(ROUTES.store.settings);
+                    return;
+                }
+                navigate(ROUTES.superAdmin.settings);
+            }
+        },
         items: [
             {
                 key: 'profile',
@@ -79,8 +102,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
                 <div className="hidden md:flex items-center bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                     <GlobalOutlined className="text-gray-400 mr-2" />
                     <span className="text-sm font-medium text-gray-600">
-                        {/* Fallback tenant name logic */}
-                        Current Tenant
+                        {tenantDisplayName}
                     </span>
                 </div>
 

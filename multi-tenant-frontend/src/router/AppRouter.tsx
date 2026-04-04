@@ -27,12 +27,17 @@ import UsersPage from "../pages/admin/UsersPage";
 import ProductsPage from "../pages/admin/ProductsPage";
 import OrdersPage from "../pages/admin/OrdersPage";
 import SettingsPage from "../pages/admin/SettingsPage";
+import OrderDetailsPage from "../pages/admin/OrderDetailsPage";
 
 
 // Users 
 import StoreLayout from '../layouts/StoreLayout';
 import StoreProductsPage from '../pages/store/StoreProductsPage';
 import StoreOrdersPage from '../pages/store/StoreOrdersPage';
+import StoreSettingsPage from '../pages/store/StoreSettingsPage';
+import CartPage from '../pages/store/CartPage';
+import CheckoutPage from '../pages/store/CheckoutPage';
+import StoreOrderDetailsPage from '../pages/store/StoreOrderDetailsPage';
 
 
 // --- Menu Definitions ---
@@ -49,7 +54,7 @@ const tenantAdminMenu = [
     { key: ROUTES.tenantAdmin.users, icon: <UserOutlined />, label: 'Users' },
     { key: ROUTES.tenantAdmin.products, icon: <ShoppingOutlined />, label: 'Products' },
     { key: ROUTES.tenantAdmin.orders, icon: <FileTextOutlined />, label: 'Orders' },
-    { key: ROUTES.tenantAdmin.settings, icon: <SettingOutlined />, label: 'Settings' },
+    { key: ROUTES.store.settings, icon: <SettingOutlined />, label: 'Settings' },
 ];
 
 // --- Placeholder Page Component ---
@@ -136,16 +141,21 @@ const AppRouter: React.FC = () => {
                   <Route path="users" element={<UsersPage />} />
                   <Route path="products" element={<ProductsPage />} />
                   <Route path="orders" element={<OrdersPage />} />
+                  <Route path="orders/:orderId" element={<OrderDetailsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
        </Route>
       </Route>
 
         {/* Tenant User Routes */}
-            <Route element={<ProtectedRoute allowedRoles={[APP_ROLES.tenantUser]} />}>
+            <Route element={<ProtectedRoute allowedRoles={[APP_ROLES.tenantUser, APP_ROLES.tenantAdmin]} />}>
               <Route path={ROUTES.store.root} element={<StoreLayout />}>
               <Route index element={<Navigate to="products" replace />} />
               <Route path="products" element={<StoreProductsPage />} />
+              <Route path="cart" element={<CartPage />} />
+              <Route path="checkout" element={<CheckoutPage />} />
               <Route path="orders" element={<StoreOrdersPage />} />
+              <Route path="orders/:orderId" element={<StoreOrderDetailsPage />} />
+              <Route path="settings" element={<StoreSettingsPage />} />
               </Route>
             </Route>
 
