@@ -11,7 +11,8 @@ import { productsApi } from '../../api/productsApi';
 import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
 import { useCart } from '../../context/CartContext';
-import type { ProductDto, PagedResult } from '../../api/productsApi';
+import type { PagedResult } from '../../types/tenant';
+import type { ProductDto } from '../../types/product';
 import { ROUTES } from '../../router/routes';
 
 const { Meta } = Card;

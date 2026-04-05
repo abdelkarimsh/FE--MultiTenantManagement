@@ -3,8 +3,8 @@ import type {
   CreateTenantRequest,
   PagedResult,
   TenantDto,
-  TenantSettingsUpdateRequest,
   TenantQueryParams,
+  TenantSettingsUpdateRequest,
   UpdateTenantRequest,
 } from '../types/tenant';
 
@@ -25,29 +25,17 @@ export const tenantApi = {
   create: (data: CreateTenantRequest) =>
     httpClient.post(TENANT_ENDPOINTS.create, data),
 
-  getById: (tenantId: string) =>
-    httpClient.get<TenantDto>(TENANT_ENDPOINTS.getById(tenantId)),
-
-  getTenantById: async (tenantId: string): Promise<TenantDto> => {
+  getById: async (tenantId: string): Promise<TenantDto> => {
     const response = await httpClient.get<TenantDto>(TENANT_ENDPOINTS.getById(tenantId));
     return response.data;
   },
 
-  update: (tenantId: string, data: UpdateTenantRequest) => {
+  update: async (tenantId: string, data: UpdateTenantRequest | TenantSettingsUpdateRequest): Promise<void> => {
     if (tenantId !== data.id) {
       throw new Error('Tenant route id must match update payload id.');
     }
 
-    return httpClient.put(TENANT_ENDPOINTS.update(tenantId), data);
-  },
-
-  updateTenant: async (tenantId: string, data: TenantSettingsUpdateRequest): Promise<void> => {
-    if (tenantId !== data.id) {
-      throw new Error('Tenant route id must match update payload id.');
-    }
-
-    await httpClient.put(TENANT_ENDPOINTS.update(tenantId), data);
-  },
+    await httpClient.put(TENANT_ENDPOINTS.update(tenantId)
 
   delete: (tenantId: string) =>
     httpClient.delete(TENANT_ENDPOINTS.delete(tenantId)),

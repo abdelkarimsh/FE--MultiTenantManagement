@@ -29,7 +29,7 @@ const StoreSettingsPage: React.FC = () => {
     error,
   } = useQuery({
     queryKey: queryKeys.tenants.byId(currentTenantId),
-    queryFn: () => tenantApi.getTenantById(currentTenantId as string),
+    queryFn: () => tenantApi.getById(currentTenantId as string),
     enabled: !!currentTenantId,
   });
 
@@ -48,7 +48,7 @@ const StoreSettingsPage: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (payload: TenantSettingsUpdateRequest) =>
-      tenantApi.updateTenant(currentTenantId as string, payload),
+      tenantApi.update(currentTenantId as string, payload),
     onSuccess: async () => {
       message.success('Store settings updated successfully');
       await queryClient.invalidateQueries({

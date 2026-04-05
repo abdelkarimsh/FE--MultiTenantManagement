@@ -1,98 +1,51 @@
-// src/pages/sa/SaUsersPage.tsx
-
 import React, { useState } from 'react';
 import {
-  Card,
-  Typography,
   Button,
-  Table,
-  Tag,
-  Space,
-  Modal,
+  Card,
   Form,
   Input,
-  Select,
+  Modal,
   Popconfirm,
+  Select,
+  Space,
   Spin,
+  Table,
+  Tag,
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../../api/queryKeys';
-import { usersApi } from '../../api/usersApi';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import PageContainer from '../../layouts/ProLayout/PageContainer';
 import { APP_ROLES, normalizeRole } from '../../types/auth';
-import type { UserDto, CreateUserRequest, UpdateUserRequest } from '../../types/users';
+import type { CreateUserRequest, UpdateUserRequest, UserDto } from '../../types/users';
+import {
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useUpdateUserMutation,
+} from '../../hooks/users/useUserMutations';
+import { useSuperAdminUsersQuery } from '../../hooks/users/useUsersQueries';
 
-const { Title } = Typography;
 const { Option } = Select;
 
 const SaUsersPage: React.FC = () => {
-  const queryClient = useQueryClient();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDto | null>(null);
   const [form] = Form.useForm();
 
-  // 🔹 قراءة جميع المستخدمين (Super Admin – كل التيننتس)
-  const { data: users, isLoading } = useQuery({
-    queryKey: queryKeys.superAdminUsers.all,
-    queryFn: () => usersApi.getUsers(), // ممكن تمرر tenantId هنا لو بدك فلترة
-  });
+  const { data: users, isLoading } = useSuperAdminUsersQuery();
+  const createMutation = useCreateUserMutation('superAdmin');
+  const updateMutation = useUpdateUserMutation('superAdmin');
+  const deleteMutation = useDeleteUserMutation('superAdmin');
 
-  // 🔹 Create
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateUserRequest) => usersApi.createUser(payload),
-    onSuccess: () => {
-      message.success('User created successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
-      setIsModalOpen(false);
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to create user');
-    },
-  });
+  const isSaving =
+    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
-  // 🔹 Update
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: string; payload: UpdateUserRequest }) =>
-      usersApi.updateUser(data.id, data.payload),
-    onSuccess: () => {
-      message.success('User updated successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
-      setIsModalOpen(false);
-      setEditingUser(null);
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to update user');
-    },
-  });
-
-  // 🔹 Delete
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => usersApi.deleteUser(id),
-    onSuccess: () => {
-      message.success('User deleted successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.superAdminUsers.all });
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to delete user');
-    },
-  });
-
-  // فتح مودال إضافة
   const handleAddClick = () => {
     setEditingUser(null);
     form.resetFields();
     setIsModalOpen(true);
   };
 
-  // فتح مودال تعديل
   const handleEditClick = (user: UserDto) => {
     setEditingUser(user);
     form.setFieldsValue({
@@ -104,7 +57,6 @@ const SaUsersPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Submit (Create / Update)
   const handleSubmit = () => {
     form
       .validateFields()
@@ -115,20 +67,45 @@ const SaUsersPage: React.FC = () => {
             tenantId: values.tenantId || null,
             role: values.role,
           };
-          updateMutation.mutate({ id: editingUser.id, payload });
-        } else {
-          const payload: CreateUserRequest = {
-            email: values.email,
-            password: values.password,
-            phoneNumber: values.phoneNumber,
-            tenantId: values.tenantId || null,
-            role: values.role,
-          };
-          createMutation.mutate(payload);
+
+          updateMutation.mutate(
+            { id: editingUser.id, data: payload },
+            {
+              onSuccess: () => {
+                message.success('User updated successfully');
+                setIsModalOpen(false);
+                setEditingUser(null);
+                form.resetFields();
+              },
+              onError: (error: any) => {
+                message.error(error?.response?.data?.message || 'Failed to update user');
+              },
+            },
+          );
+          return;
         }
+
+        const payload: CreateUserRequest = {
+          email: values.email,
+          password: values.password,
+          phoneNumber: values.phoneNumber,
+          tenantId: values.tenantId || null,
+          role: values.role,
+        };
+
+        createMutation.mutate(payload, {
+          onSuccess: () => {
+            message.success('User created successfully');
+            setIsModalOpen(false);
+            form.resetFields();
+          },
+          onError: (error: any) => {
+            message.error(error?.response?.data?.message || 'Failed to create user');
+          },
+        });
       })
       .catch(() => {
-        /* validation errors */
+        // Validation errors are displayed by Form.Item.
       });
   };
 
@@ -142,20 +119,20 @@ const SaUsersPage: React.FC = () => {
       title: 'Phone',
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
-      render: (phone?: string | null) => phone ?? '\u2014',
+      render: (phone?: string | null) => phone ?? '-',
     },
     {
       title: 'Tenant',
       dataIndex: 'tenant',
       key: 'tenant',
-      render: (tenant?: string | null) => tenant?.trim() || '\u2014',
+      render: (tenant?: string | null) => tenant?.trim() || '-',
     },
     {
       title: 'Role',
       dataIndex: 'roles',
       key: 'roles',
       render: (roles: string[]) =>
-        roles && roles.length > 0 ? <Tag>{roles[0]}</Tag> : '\u2014',
+        roles && roles.length > 0 ? <Tag>{roles[0]}</Tag> : '-',
     },
     {
       title: 'Actions',
@@ -172,7 +149,16 @@ const SaUsersPage: React.FC = () => {
           <Popconfirm
             title="Delete user?"
             description="Are you sure you want to delete this user?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
+            onConfirm={() =>
+              deleteMutation.mutate(record.id, {
+                onSuccess: () => {
+                  message.success('User deleted successfully');
+                },
+                onError: (error: any) => {
+                  message.error(error?.response?.data?.message || 'Failed to delete user');
+                },
+              })
+            }
           >
             <Button icon={<DeleteOutlined />} size="small" danger>
               Delete
@@ -183,15 +169,13 @@ const SaUsersPage: React.FC = () => {
     },
   ];
 
-  const isSaving =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
-
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={2} style={{ marginBottom: 16 }}>
-        User Management
-      </Title>
-
+    <PageContainer
+      header={{
+        title: 'User Management',
+        description: 'Manage users across all tenants.',
+      }}
+    >
       <Card
         title="Users"
         extra={
@@ -220,7 +204,6 @@ const SaUsersPage: React.FC = () => {
         )}
       </Card>
 
-      {/* Modal: Create / Edit */}
       <Modal
         open={isModalOpen}
         title={editingUser ? 'Edit User' : 'Create User'}
@@ -250,7 +233,6 @@ const SaUsersPage: React.FC = () => {
             <Input placeholder="user@example.com" disabled={!!editingUser} />
           </Form.Item>
 
-          {/* Password فقط في الـ Create */}
           {!editingUser && (
             <Form.Item
               label="Password"
@@ -282,8 +264,9 @@ const SaUsersPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PageContainer>
   );
 };
 
 export default SaUsersPage;
+

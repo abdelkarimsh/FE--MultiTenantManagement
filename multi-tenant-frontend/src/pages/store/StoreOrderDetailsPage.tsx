@@ -8,35 +8,27 @@ import {
   Input,
   Modal,
   Spin,
-  Tag,
   Timeline,
   Typography,
   message,
 } from 'antd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { ordersApi } from '../../api/ordersApi';
-import { queryKeys } from '../../api/queryKeys';
 import StorePageContainer from '../../components/store/StorePageContainer';
+import OrderStatusTag from '../../components/common/OrderStatusTag';
 import { useAuth } from '../../context/AuthContext';
 import { APP_ROLES, normalizeRole } from '../../types/auth';
-import { ORDER_STATUSES } from '../../types/order';
+import { canTenantUserCancelOrder } from '../../types/order';
+import { useStoreOrderDetailsQuery } from '../../hooks/orders/useOrderDetailsQuery';
+import { useCancelOrderMutation } from '../../hooks/orders/useCancelOrderMutation';
 
 interface CancelFormValues {
   reason: string;
 }
 
-const statusColorMap: Record<string, string> = {
-  [ORDER_STATUSES.pendingApproval]: 'gold',
-  [ORDER_STATUSES.approved]: 'green',
-  [ORDER_STATUSES.rejected]: 'red',
-  [ORDER_STATUSES.cancelled]: 'default',
-};
-
 const StoreOrderDetailsPage: React.FC = () => {
   const [cancelModalOpen, setCancelModalOpen] = React.useState(false);
   const [form] = Form.useForm<CancelFormValues>();
-  const queryClient = useQueryClient();
   const { orderId } = useParams<{ orderId: string }>();
   const { currentTenantId, user } = useAuth();
   const role = normalizeRole(user?.role);
@@ -46,22 +38,15 @@ const StoreOrderDetailsPage: React.FC = () => {
     isLoading,
     isError,
     error,
-  } = useQuery({
-    queryKey: queryKeys.storeOrders.detail(currentTenantId, orderId ?? null),
-    queryFn: () => ordersApi.getOrderById(currentTenantId as string, orderId as string),
-    enabled: !!currentTenantId && !!orderId,
-  });
+  } = useStoreOrderDetailsQuery(currentTenantId, orderId ?? null);
 
+  const cancelBaseMutation = useCancelOrderMutation(currentTenantId, orderId ?? null);
   const cancelMutation = useMutation({
-    mutationFn: (reason: string) =>
-      ordersApi.cancelOrder(currentTenantId as string, orderId as string, { reason }),
-    onSuccess: async () => {
+    mutationFn: (reason: string) => cancelBaseMutation.mutateAsync(reason),
+    onSuccess: () => {
       message.success('Order cancelled successfully');
       setCancelModalOpen(false);
       form.resetFields();
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.storeOrders.detail(currentTenantId, orderId ?? null),
-      });
     },
     onError: (cancelError: any) => {
       message.error(cancelError?.response?.data?.message || 'Failed to cancel order');
@@ -70,7 +55,8 @@ const StoreOrderDetailsPage: React.FC = () => {
 
   const canCancel =
     role === APP_ROLES.tenantUser &&
-    order?.status === ORDER_STATUSES.pendingApproval;
+    !!order &&
+    canTenantUserCancelOrder(order.status);
 
   const handleConfirmCancel = () => {
     form
@@ -130,7 +116,7 @@ const StoreOrderDetailsPage: React.FC = () => {
               Review your order status and history.
             </Typography.Text>
           </div>
-          <Tag color={statusColorMap[order.status] || 'blue'}>{order.status}</Tag>
+          <OrderStatusTag status={order.status} />
         </div>
 
         <Card>
@@ -210,4 +196,3 @@ const StoreOrderDetailsPage: React.FC = () => {
 };
 
 export default StoreOrderDetailsPage;
-

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { ProductDto } from '../api/productsApi';
+import type { ProductDto } from '../types/product';
 import type { CartItem } from '../types/order';
 import { useAuth } from './AuthContext';
 

@@ -9,29 +9,18 @@ import {
   Space,
   Spin,
   Table,
-  Tag,
-  Typography,
 } from 'antd';
 import type { TableProps } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import { EyeOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ordersApi } from '../../api/ordersApi';
-import { queryKeys } from '../../api/queryKeys';
 import { useAuth } from '../../context/AuthContext';
+import PageContainer from '../../layouts/ProLayout/PageContainer';
 import { ROUTES } from '../../router/routes';
+import { useOrdersListQuery } from '../../hooks/orders/useOrdersListQuery';
+import OrderStatusTag from '../../components/common/OrderStatusTag';
 import { ORDER_STATUSES, type GetOrdersQuery, type OrderListItem } from '../../types/order';
-
-const { Title } = Typography;
-
-const statusColorMap: Record<string, string> = {
-  [ORDER_STATUSES.pendingApproval]: 'gold',
-  [ORDER_STATUSES.approved]: 'green',
-  [ORDER_STATUSES.rejected]: 'red',
-  [ORDER_STATUSES.cancelled]: 'default',
-};
 
 const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,12 +47,7 @@ const OrdersPage: React.FC = () => {
     [pageNumber, pageSize, sortBy, isAscending, search, status, customerId],
   );
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: queryKeys.tenantAdminOrders.list(currentTenantId, queryParams as Record<string, unknown>),
-    queryFn: () => ordersApi.getOrders(currentTenantId as string, queryParams),
-    enabled: !!currentTenantId,
-    placeholderData: (prev) => prev,
-  });
+  const { data, isLoading, isError, error } = useOrdersListQuery(currentTenantId, queryParams);
 
   const orders = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -105,9 +89,7 @@ const OrdersPage: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (orderStatus: string) => (
-        <Tag color={statusColorMap[orderStatus] || 'blue'}>{orderStatus}</Tag>
-      ),
+      render: (orderStatus: string) => <OrderStatusTag status={orderStatus} />,
     },
     {
       title: 'Total Amount',
@@ -144,11 +126,12 @@ const OrdersPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={2} style={{ marginBottom: 16 }}>
-        Orders
-      </Title>
-
+    <PageContainer
+      header={{
+        title: 'Orders',
+        description: 'Manage tenant orders, filters, and status transitions.',
+      }}
+    >
       <Card
         title="Orders"
         extra={
@@ -230,7 +213,7 @@ const OrdersPage: React.FC = () => {
           />
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -91,3 +91,9 @@ export interface CartItem {
   quantity: number;
   stockQuantity: number;
 }
+
+export const canTenantAdminManageOrder = (status: OrderStatus): boolean =>
+  status === ORDER_STATUSES.pendingApproval;
+
+export const canTenantUserCancelOrder = (status: OrderStatus): boolean =>
+  status === ORDER_STATUSES.pendingApproval;

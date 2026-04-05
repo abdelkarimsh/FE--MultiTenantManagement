@@ -1,12 +1,11 @@
 import React from 'react';
 import { Alert, Button, Card, Empty, Form, Input, Typography, message } from 'antd';
-import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ordersApi } from '../../api/ordersApi';
 import StorePageContainer from '../../components/store/StorePageContainer';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { ROUTES } from '../../router/routes';
+import { useCreateOrderMutation } from '../../hooks/orders/useCreateOrderMutation';
 import type { CreateOrderRequest } from '../../types/order';
 
 interface CheckoutFormValues {
@@ -45,18 +44,7 @@ const CheckoutPage: React.FC = () => {
   const { currentTenantId, token } = useAuth();
   const customerId = getCustomerIdFromToken(token);
 
-  const createOrderMutation = useMutation({
-    mutationFn: (payload: CreateOrderRequest) =>
-      ordersApi.createOrder(currentTenantId as string, payload),
-    onSuccess: (order) => {
-      clearCart();
-      message.success('Order created successfully');
-      navigate(ROUTES.store.orderDetails(order.id));
-    },
-    onError: (error: any) => {
-      message.error(error?.response?.data?.message || 'Failed to create order');
-    },
-  });
+  const createBaseMutation = useCreateOrderMutation(currentTenantId);
 
   const handleSubmit = (values: CheckoutFormValues) => {
     if (!currentTenantId) {
@@ -85,7 +73,16 @@ const CheckoutPage: React.FC = () => {
       })),
     };
 
-    createOrderMutation.mutate(payload);
+    createBaseMutation.mutate(payload, {
+      onSuccess: (order) => {
+        clearCart();
+        message.success('Order created successfully');
+        navigate(ROUTES.store.orderDetails(order.id));
+      },
+      onError: (error: any) => {
+        message.error(error?.response?.data?.message || 'Failed to create order');
+      },
+    });
   };
 
   if (items.length === 0) {
@@ -143,7 +140,7 @@ const CheckoutPage: React.FC = () => {
                 <Button
                   type="primary"
                   htmlType="submit"
-                  loading={createOrderMutation.isPending}
+                  loading={createBaseMutation.isPending}
                   disabled={!customerId}
                 >
                   Place Order

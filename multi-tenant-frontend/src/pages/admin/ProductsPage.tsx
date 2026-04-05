@@ -1,125 +1,52 @@
-// src/pages/admin/ProductsPage.tsx
-
 import React, { useState } from 'react';
 import {
-  Card,
-  Typography,
   Button,
-  Table,
-  Tag,
-  Space,
-  Modal,
+  Card,
   Form,
   Input,
   InputNumber,
-  Switch,
+  Modal,
   Popconfirm,
   Spin,
+  Switch,
+  Table,
+  Tag,
+  Space,
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-import { queryKeys } from '../../api/queryKeys';
-import {
-  productsApi,
-  type ProductDto,
-  type CreateProductRequest,
-  type UpdateProductRequest,
-} from '../../api/productsApi';
-
-// نفس الـ AuthContext اللي استخدمناه في الـ Users
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
-
-const { Title } = Typography;
+import PageContainer from '../../layouts/ProLayout/PageContainer';
+import {
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useUpdateProductMutation,
+} from '../../hooks/products/useProductMutations';
+import { useTenantProductsQuery } from '../../hooks/products/useTenantProductsQuery';
+import type { CreateProductRequest, ProductDto, UpdateProductRequest } from '../../types/product';
 
 const ProductsPage: React.FC = () => {
-  const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const { currentTenantId } = useAuth();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
-
-  // نتحكم في pagination بناءً على الـ backend
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.tenantProducts.list(currentTenantId, pageNumber, pageSize),
-    queryFn: () =>
-      productsApi.getProducts(currentTenantId as string, pageNumber, pageSize),
-    enabled: !!currentTenantId,
-     placeholderData: (prev) => prev,
-  });
+  const { data, isLoading } = useTenantProductsQuery(currentTenantId, pageNumber, pageSize);
+  const createMutation = useCreateProductMutation(currentTenantId);
+  const updateMutation = useUpdateProductMutation(currentTenantId);
+  const deleteMutation = useDeleteProductMutation(currentTenantId);
 
   const products = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
-
-  // 🔹 Create
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateProductRequest) =>
-      productsApi.createProduct(currentTenantId as string, payload),
-    onSuccess: () => {
-      message.success('Product created successfully');
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.tenantProducts.all,
-      });
-      setIsModalOpen(false);
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to create product');
-    },
-  });
-
-  // 🔹 Update
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: string; payload: UpdateProductRequest }) =>
-      productsApi.updateProduct(
-        currentTenantId as string,
-        data.id,
-        data.payload
-      ),
-    onSuccess: () => {
-      message.success('Product updated successfully');
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.tenantProducts.all,
-      });
-      setIsModalOpen(false);
-      setEditingProduct(null);
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to update product');
-    },
-  });
-
-  // 🔹 Delete
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      productsApi.deleteProduct(currentTenantId as string, id),
-    onSuccess: () => {
-      message.success('Product deleted successfully');
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.tenantProducts.all,
-      });
-    },
-    onError: (error: any) => {
-      console.error(error);
-      message.error('Failed to delete product');
-    },
-  });
 
   const isSaving =
     createMutation.isPending ||
     updateMutation.isPending ||
     deleteMutation.isPending;
 
-  // فتح مودال إضافة
   const handleAddClick = () => {
     setEditingProduct(null);
     form.resetFields();
@@ -131,7 +58,6 @@ const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // فتح مودال تعديل
   const handleEditClick = (product: ProductDto) => {
     setEditingProduct(product);
     form.setFieldsValue({
@@ -145,7 +71,6 @@ const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Submit (Create / Update)
   const handleSubmit = () => {
     form
       .validateFields()
@@ -160,13 +85,36 @@ const ProductsPage: React.FC = () => {
         };
 
         if (editingProduct) {
-          updateMutation.mutate({ id: editingProduct.id, payload });
-        } else {
-          createMutation.mutate(payload as CreateProductRequest);
+          updateMutation.mutate(
+            { id: editingProduct.id, data: payload },
+            {
+              onSuccess: () => {
+                message.success('Product updated successfully');
+                setIsModalOpen(false);
+                setEditingProduct(null);
+                form.resetFields();
+              },
+              onError: (error: any) => {
+                message.error(error?.response?.data?.message || 'Failed to update product');
+              },
+            },
+          );
+          return;
         }
+
+        createMutation.mutate(payload as CreateProductRequest, {
+          onSuccess: () => {
+            message.success('Product created successfully');
+            setIsModalOpen(false);
+            form.resetFields();
+          },
+          onError: (error: any) => {
+            message.error(error?.response?.data?.message || 'Failed to create product');
+          },
+        });
       })
       .catch(() => {
-        // validation errors
+        // Validation errors are displayed by Form.Item.
       });
   };
 
@@ -191,8 +139,8 @@ const ProductsPage: React.FC = () => {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
-      render: (v: boolean) =>
-        v ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>,
+      render: (isActive: boolean) =>
+        isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>,
     },
     {
       title: 'Actions',
@@ -209,7 +157,16 @@ const ProductsPage: React.FC = () => {
           <Popconfirm
             title="Delete product?"
             description="Are you sure you want to delete this product?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
+            onConfirm={() =>
+              deleteMutation.mutate(record.id, {
+                onSuccess: () => {
+                  message.success('Product deleted successfully');
+                },
+                onError: (error: any) => {
+                  message.error(error?.response?.data?.message || 'Failed to delete product');
+                },
+              })
+            }
           >
             <Button icon={<DeleteOutlined />} size="small" danger>
               Delete
@@ -221,11 +178,12 @@ const ProductsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={2} style={{ marginBottom: 16 }}>
-        Products
-      </Title>
-
+    <PageContainer
+      header={{
+        title: 'Products',
+        description: 'Manage tenant catalog items and inventory status.',
+      }}
+    >
       <Card
         title="Products"
         extra={
@@ -257,16 +215,15 @@ const ProductsPage: React.FC = () => {
               current: pageNumber,
               pageSize,
               total: totalCount,
-              onChange: (page, pageSize) => {
+              onChange: (page, size) => {
                 setPageNumber(page);
-                setPageSize(pageSize);
+                setPageSize(size);
               },
             }}
           />
         )}
       </Card>
 
-      {/* Modal: Create / Edit */}
       <Modal
         open={isModalOpen}
         title={editingProduct ? 'Edit Product' : 'Create Product'}
@@ -326,17 +283,14 @@ const ProductsPage: React.FC = () => {
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
 
-          <Form.Item
-            label="Active"
-            name="isActive"
-            valuePropName="checked"
-          >
+          <Form.Item label="Active" name="isActive" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PageContainer>
   );
 };
 
 export default ProductsPage;
+

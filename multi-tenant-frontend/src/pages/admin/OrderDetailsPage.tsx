@@ -9,78 +9,61 @@ import {
   Modal,
   Popconfirm,
   Spin,
-  Tag,
   Timeline,
   Typography,
   message,
 } from 'antd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { ordersApi } from '../../api/ordersApi';
-import { queryKeys } from '../../api/queryKeys';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
 import { useAuth } from '../../context/AuthContext';
-import { ORDER_STATUSES } from '../../types/order';
+import { canTenantAdminManageOrder } from '../../types/order';
+import { useTenantAdminOrderDetailsQuery } from '../../hooks/orders/useOrderDetailsQuery';
+import { useApproveOrderMutation } from '../../hooks/orders/useApproveOrderMutation';
+import { useRejectOrderMutation } from '../../hooks/orders/useRejectOrderMutation';
+import OrderStatusTag from '../../components/common/OrderStatusTag';
 
 interface RejectFormValues {
   reason: string;
 }
 
-const statusColorMap: Record<string, string> = {
-  [ORDER_STATUSES.pendingApproval]: 'gold',
-  [ORDER_STATUSES.approved]: 'green',
-  [ORDER_STATUSES.rejected]: 'red',
-  [ORDER_STATUSES.cancelled]: 'default',
-};
-
 const OrderDetailsPage: React.FC = () => {
   const [rejectModalOpen, setRejectModalOpen] = React.useState(false);
   const [rejectForm] = Form.useForm<RejectFormValues>();
-  const queryClient = useQueryClient();
   const { currentTenantId } = useAuth();
   const { orderId } = useParams<{ orderId: string }>();
-
-  const queryKey = queryKeys.tenantAdminOrders.detail(currentTenantId, orderId ?? null);
 
   const {
     data: order,
     isLoading,
     isError,
     error,
-  } = useQuery({
-    queryKey,
-    queryFn: () => ordersApi.getOrderById(currentTenantId as string, orderId as string),
-    enabled: !!currentTenantId && !!orderId,
-  });
+  } = useTenantAdminOrderDetailsQuery(currentTenantId, orderId ?? null);
 
+  const approveBaseMutation = useApproveOrderMutation(currentTenantId, orderId ?? null);
   const approveMutation = useMutation({
-    mutationFn: () => ordersApi.approveOrder(currentTenantId as string, orderId as string),
-    onSuccess: async () => {
+    mutationFn: () => approveBaseMutation.mutateAsync(),
+    onSuccess: () => {
       message.success('Order approved successfully');
-      await queryClient.invalidateQueries({ queryKey });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.tenantAdminOrders.all });
     },
     onError: (approveError: any) => {
       message.error(approveError?.response?.data?.message || 'Failed to approve order');
     },
   });
-
+  const rejectBaseMutation = useRejectOrderMutation(currentTenantId, orderId ?? null);
   const rejectMutation = useMutation({
-    mutationFn: (reason: string) =>
-      ordersApi.rejectOrder(currentTenantId as string, orderId as string, { reason }),
-    onSuccess: async () => {
+    mutationFn: (reason: string) => rejectBaseMutation.mutateAsync(reason),
+    onSuccess: () => {
       message.success('Order rejected successfully');
       setRejectModalOpen(false);
       rejectForm.resetFields();
-      await queryClient.invalidateQueries({ queryKey });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.tenantAdminOrders.all });
     },
     onError: (rejectError: any) => {
       message.error(rejectError?.response?.data?.message || 'Failed to reject order');
     },
   });
 
-  const canManageOrder = order?.status === ORDER_STATUSES.pendingApproval;
+  const canManageOrder = order ? canTenantAdminManageOrder(order.status) : false;
 
   const handleRejectSubmit = () => {
     rejectForm
@@ -135,7 +118,7 @@ const OrderDetailsPage: React.FC = () => {
             <Typography.Title level={4} className="!mb-0">
               Order Metadata
             </Typography.Title>
-            <Tag color={statusColorMap[order.status] || 'blue'}>{order.status}</Tag>
+            <OrderStatusTag status={order.status} />
           </div>
 
           <Descriptions column={1}>

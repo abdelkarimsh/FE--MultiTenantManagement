@@ -31,7 +31,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
 
     const { data: tenantData } = useQuery({
         queryKey: queryKeys.tenants.byId(currentTenantId),
-        queryFn: () => tenantApi.getTenantById(currentTenantId as string),
+        queryFn: () => tenantApi.getById(currentTenantId as string),
         enabled: !!currentTenantId && role === APP_ROLES.tenantAdmin,
         staleTime: 5 * 60 * 1000,
     });
