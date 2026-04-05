@@ -12,12 +12,16 @@ import {
   Table,
   Tag,
   Space,
+  Upload,
   message,
 } from 'antd';
+import type { UploadProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
+import { attachmentsApi } from '../../api/attachmentsApi';
 import {
   useCreateProductMutation,
   useDeleteProductMutation,
@@ -25,60 +29,132 @@ import {
 } from '../../hooks/products/useProductMutations';
 import { useTenantProductsQuery } from '../../hooks/products/useTenantProductsQuery';
 import type { CreateProductRequest, ProductDto, UpdateProductRequest } from '../../types/product';
+import { resolveProductImageUrl } from '../../utils/media';
+import { resolveMediaUrl } from '../../utils/media';
+
+interface ProductFormValues {
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  attachmentId?: string | null;
+  stockQuantity: number;
+  isActive: boolean;
+}
 
 const ProductsPage: React.FC = () => {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ProductFormValues>();
   const { currentTenantId } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedImageName, setSelectedImageName] = useState<string>('');
+  const [uploadFailed, setUploadFailed] = useState(false);
 
   const { data, isLoading } = useTenantProductsQuery(currentTenantId, pageNumber, pageSize);
   const createMutation = useCreateProductMutation(currentTenantId);
   const updateMutation = useUpdateProductMutation(currentTenantId);
   const deleteMutation = useDeleteProductMutation(currentTenantId);
 
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) =>
+      attachmentsApi.uploadAttachment(currentTenantId as string, {
+        file,
+        category: 'product',
+        entityType: 'products',
+        entityId: editingProduct?.id ?? 'new-product',
+      }),
+    onSuccess: (response) => {
+      form.setFieldsValue({
+        attachmentId: response.attachmentId,
+        imageUrl: response.url,
+      });
+      setUploadFailed(false);
+      message.success('Image uploaded successfully');
+    },
+    onError: (error: any) => {
+      form.setFieldsValue({
+        attachmentId: null,
+        imageUrl: '',
+      });
+      setUploadFailed(true);
+      message.error(error?.response?.data?.message || 'Image upload failed');
+    },
+  });
+
   const products = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
+  const watchedImageUrl = Form.useWatch('imageUrl', form);
+  const previewUrl = !uploadFailed ? resolveMediaUrl(watchedImageUrl) : null;
 
-  const isSaving =
-    createMutation.isPending ||
-    updateMutation.isPending ||
-    deleteMutation.isPending;
+  const isSaving = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+  const isUploading = uploadMutation.isPending;
+
+  const resetModalState = () => {
+    setEditingProduct(null);
+    setSelectedImageName('');
+    setUploadFailed(false);
+    form.resetFields();
+  };
 
   const handleAddClick = () => {
-    setEditingProduct(null);
-    form.resetFields();
+    resetModalState();
     form.setFieldsValue({
       isActive: true,
       stockQuantity: 0,
       price: 0,
+      imageUrl: '',
+      attachmentId: null,
     });
     setIsModalOpen(true);
   };
 
   const handleEditClick = (product: ProductDto) => {
     setEditingProduct(product);
+    setSelectedImageName('');
+    setUploadFailed(false);
     form.setFieldsValue({
       name: product.name,
       description: product.description,
       price: product.price,
       imageUrl: product.imageUrl,
+      attachmentId: product.attachmentId ?? null,
       stockQuantity: product.stockQuantity,
       isActive: product.isActive,
     });
     setIsModalOpen(true);
   };
 
+  const handleImageUpload = (file: File) => {
+    if (!currentTenantId) {
+      message.error('Tenant context is missing');
+      return;
+    }
+
+    setSelectedImageName(file.name);
+    uploadMutation.mutate(file);
+  };
+
+  const uploadProps: UploadProps = {
+    accept: 'image/*',
+    maxCount: 1,
+    showUploadList: false,
+    beforeUpload: (file) => {
+      handleImageUpload(file as File);
+      return false;
+    },
+  };
+
   const handleSubmit = () => {
     form
       .validateFields()
       .then((values) => {
-        const payload: CreateProductRequest | UpdateProductRequest = {
+        const updatePayload: UpdateProductRequest = {
           name: values.name,
           description: values.description,
           price: values.price,
+          attachmentId: values.attachmentId || null,
           imageUrl: values.imageUrl,
           stockQuantity: values.stockQuantity,
           isActive: values.isActive,
@@ -86,13 +162,12 @@ const ProductsPage: React.FC = () => {
 
         if (editingProduct) {
           updateMutation.mutate(
-            { id: editingProduct.id, data: payload },
+            { id: editingProduct.id, data: updatePayload },
             {
               onSuccess: () => {
                 message.success('Product updated successfully');
                 setIsModalOpen(false);
-                setEditingProduct(null);
-                form.resetFields();
+                resetModalState();
               },
               onError: (error: any) => {
                 message.error(error?.response?.data?.message || 'Failed to update product');
@@ -102,11 +177,21 @@ const ProductsPage: React.FC = () => {
           return;
         }
 
-        createMutation.mutate(payload as CreateProductRequest, {
+        if (!currentTenantId) {
+          message.error('Tenant context is missing');
+          return;
+        }
+
+        const createPayload: CreateProductRequest = {
+          tenantId: currentTenantId,
+          ...updatePayload,
+        };
+
+        createMutation.mutate(createPayload, {
           onSuccess: () => {
             message.success('Product created successfully');
             setIsModalOpen(false);
-            form.resetFields();
+            resetModalState();
           },
           onError: (error: any) => {
             message.error(error?.response?.data?.message || 'Failed to create product');
@@ -147,11 +232,7 @@ const ProductsPage: React.FC = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => handleEditClick(record)}
-          >
+          <Button icon={<EditOutlined />} size="small" onClick={() => handleEditClick(record)}>
             Edit
           </Button>
           <Popconfirm
@@ -178,12 +259,7 @@ const ProductsPage: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      header={{
-        title: 'Products',
-        description: 'Manage tenant catalog items and inventory status.',
-      }}
-    >
+    <PageContainer header={{ title: 'Products' }}>
       <Card
         title="Products"
         extra={
@@ -198,9 +274,7 @@ const ProductsPage: React.FC = () => {
         }
       >
         {!currentTenantId ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            Please select a tenant first.
-          </div>
+          <div style={{ textAlign: 'center', padding: 40 }}>Please select a tenant first.</div>
         ) : isLoading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin />
@@ -229,12 +303,12 @@ const ProductsPage: React.FC = () => {
         title={editingProduct ? 'Edit Product' : 'Create Product'}
         onCancel={() => {
           setIsModalOpen(false);
-          setEditingProduct(null);
-          form.resetFields();
+          resetModalState();
         }}
         onOk={handleSubmit}
         okButtonProps={{
           loading: createMutation.isPending || updateMutation.isPending,
+          disabled: isUploading,
         }}
       >
         <Form form={form} layout="vertical">
@@ -259,20 +333,51 @@ const ProductsPage: React.FC = () => {
             name="price"
             rules={[{ required: true, message: 'Price is required' }]}
           >
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              step={0.01}
-              placeholder="Price"
-            />
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} placeholder="Price" />
           </Form.Item>
 
-          <Form.Item
-            label="Image URL"
-            name="imageUrl"
-            rules={[{ required: true, message: 'Image URL is required' }]}
-          >
-            <Input placeholder="https://..." />
+          <Form.Item label="Product Image">
+            <div className="space-y-3">
+              <Space>
+                <Upload {...uploadProps}>
+                  <Button
+                    icon={<UploadOutlined />}
+                    loading={isUploading}
+                    disabled={!currentTenantId || isUploading}
+                  >
+                    {isUploading ? 'Uploading...' : 'Select and Upload Image'}
+                  </Button>
+                </Upload>
+                {selectedImageName && (
+                  <span className="text-xs text-slate-500">Selected: {selectedImageName}</span>
+                )}
+              </Space>
+
+              <Form.Item name="attachmentId" noStyle>
+                <Input type="hidden" />
+              </Form.Item>
+
+              <Form.Item
+                name="imageUrl"
+                rules={[{ required: true, message: 'Please upload a product image' }]}
+                noStyle
+              >
+                <Input type="hidden" />
+              </Form.Item>
+
+              {previewUrl && (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={resolveProductImageUrl(previewUrl)}
+                    alt="Product preview"
+                    className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                  />
+                  <span className="text-xs text-slate-500">
+                    Preview of the current product image.
+                  </span>
+                </div>
+              )}
+            </div>
           </Form.Item>
 
           <Form.Item
@@ -293,4 +398,3 @@ const ProductsPage: React.FC = () => {
 };
 
 export default ProductsPage;
-

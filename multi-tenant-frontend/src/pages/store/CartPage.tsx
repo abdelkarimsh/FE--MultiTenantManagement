@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import StorePageContainer from '../../components/store/StorePageContainer';
 import { useCart } from '../../context/CartContext';
 import { ROUTES } from '../../router/routes';
+import { resolveProductImageUrl } from '../../utils/media';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ const CartPage: React.FC = () => {
               >
                 <div className="flex min-w-0 items-center gap-4">
                   <img
-                    src={item.imageUrl || 'https://via.placeholder.com/80x80.png?text=Product'}
+                    src={resolveProductImageUrl(item.imageUrl)}
                     alt={item.name}
                     className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
                   />
