@@ -35,8 +35,9 @@ export const tenantApi = {
       throw new Error('Tenant route id must match update payload id.');
     }
 
-    await httpClient.put(TENANT_ENDPOINTS.update(tenantId)
+    await httpClient.put(TENANT_ENDPOINTS.update(tenantId));
+  },
 
   delete: (tenantId: string) =>
-    httpClient.delete(TENANT_ENDPOINTS.delete(tenantId)),
+    httpClient.delete(TENANT_ENDPOINTS.delete(tenantId))
 };

@@ -9,7 +9,10 @@ import { PlaceholderPage } from './RouterPlaceholders';
 import AuthLayout from '../layouts/AuthLayout';
 import BasicLayout from '../layouts/ProLayout/BasicLayout';
 import StoreLayout from '../layouts/StoreLayout';
-import LandingPage from '../pages/LandingPage';
+import PublicLayout from '../layouts/PublicLayout';
+import HomePage from '../pages/public/HomePage';
+import AboutPage from '../pages/public/AboutPage';
+import FeaturesPage from '../pages/public/FeaturesPage';
 import LoginPage from '../pages/auth/LoginPage';
 import TenantsPage from '../pages/sa/TenantsPage';
 import SaUsersPage from '../pages/sa/SaUsersPage';
@@ -24,7 +27,6 @@ import CartPage from '../pages/store/CartPage';
 import CheckoutPage from '../pages/store/CheckoutPage';
 import StoreOrdersPage from '../pages/store/StoreOrdersPage';
 import StoreOrderDetailsPage from '../pages/store/StoreOrderDetailsPage';
-import StoreSettingsPage from '../pages/store/StoreSettingsPage';
 
 const AppRouter: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -34,13 +36,16 @@ const AppRouter: React.FC = () => {
     <BrowserRouter>
       <Routes>
         <Route
-          path={ROUTES.root}
           element={
             isAuthenticated
               ? <Navigate to={defaultRoute} replace />
-              : <LandingPage />
+              : <PublicLayout />
           }
-        />
+        >
+          <Route path={ROUTES.root} element={<HomePage />} />
+          <Route path={ROUTES.about} element={<AboutPage />} />
+          <Route path={ROUTES.features} element={<FeaturesPage />} />
+        </Route>
 
         <Route element={<AuthLayout />}>
           <Route
@@ -83,7 +88,6 @@ const AppRouter: React.FC = () => {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="orders" element={<StoreOrdersPage />} />
             <Route path="orders/:orderId" element={<StoreOrderDetailsPage />} />
-            <Route path="settings" element={<StoreSettingsPage />} />
           </Route>
         </Route>
 
@@ -94,4 +98,3 @@ const AppRouter: React.FC = () => {
 };
 
 export default AppRouter;
-

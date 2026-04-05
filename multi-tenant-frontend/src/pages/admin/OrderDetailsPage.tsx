@@ -106,12 +106,7 @@ const OrderDetailsPage: React.FC = () => {
   }
 
   return (
-    <PageContainer
-      header={{
-        title: 'Order Details',
-        description: 'Review order information, status history, and approval actions.',
-      }}
-    >
+    <PageContainer>
       <div className="space-y-4">
         <Card>
           <div className="mb-4 flex items-center justify-between">

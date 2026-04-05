@@ -46,8 +46,8 @@ const TopHeader: React.FC<TopHeaderProps> = ({ collapsed, onCollapse }) => {
     const userMenu = {
         onClick: ({ key }: { key: string }) => {
             if (key === 'settings') {
-                if (role === APP_ROLES.tenantAdmin || role === APP_ROLES.tenantUser) {
-                    navigate(ROUTES.store.settings);
+                if (role === APP_ROLES.tenantAdmin) {
+                    navigate(ROUTES.tenantAdmin.settings);
                     return;
                 }
                 navigate(ROUTES.superAdmin.settings);

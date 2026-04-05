@@ -1,5 +1,7 @@
 export const ROUTES = {
   root: '/',
+  about: '/about',
+  features: '/features',
   login: '/login',
   superAdmin: {
     root: '/sa',
@@ -24,6 +26,5 @@ export const ROUTES = {
     checkout: '/store/checkout',
     orders: '/store/orders',
     orderDetails: (orderId: string) => `/store/orders/${orderId}`,
-    settings: '/store/settings',
   },
 } as const;

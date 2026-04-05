@@ -20,5 +20,5 @@ export const tenantAdminMenu = [
   { key: ROUTES.tenantAdmin.users, icon: <UserOutlined />, label: 'Users' },
   { key: ROUTES.tenantAdmin.products, icon: <ShoppingOutlined />, label: 'Products' },
   { key: ROUTES.tenantAdmin.orders, icon: <FileTextOutlined />, label: 'Orders' },
-  { key: ROUTES.store.settings, icon: <SettingOutlined />, label: 'Settings' },
+  { key: ROUTES.tenantAdmin.settings, icon: <SettingOutlined />, label: 'Settings' },
 ];

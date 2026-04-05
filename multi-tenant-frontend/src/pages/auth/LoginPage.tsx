@@ -2,6 +2,7 @@ import React from 'react';
 import { Form, Input, Button, message, Switch, Typography } from 'antd';
 import { UserOutlined, LockOutlined, RocketOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
+import BrandLogo from '../../components/branding/BrandLogo';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
@@ -166,17 +167,11 @@ const LoginPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="text-center z-10">
-                            <Title
-                                level={3}
-                                style={{
-                                    color: 'white',
-                                    fontWeight: 800,
-                                    letterSpacing: '2px',
-                                }}
-                            >
-                                YOUR <br /> LOGO
-                            </Title>
+                        <div className="text-center z-10 flex flex-col items-center gap-4">
+                            <BrandLogo variant="icon-name" size="md" className="login-brand" />
+                            <Text style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '0.08em', fontSize: 12 }}>
+                                STOREFLOW
+                            </Text>
                         </div>
                     </div>
 

@@ -126,12 +126,7 @@ const OrdersPage: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      header={{
-        title: 'Orders',
-        description: 'Manage tenant orders, filters, and status transitions.',
-      }}
-    >
+    <PageContainer>
       <Card
         title="Orders"
         extra={
