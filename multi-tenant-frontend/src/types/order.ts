@@ -19,6 +19,7 @@ export interface OrderStatusHistoryDto {
 
 export interface OrderItemDto {
   id: string;
+  tenantId?: string;
   orderId: string;
   productId: string;
   productName?: string | null;
@@ -37,6 +38,7 @@ export interface OrderDto {
   createdAtUtc: string;
   updatedAtUtc: string | null;
   items?: OrderItemDto[];
+  listItems?: OrderItemDto[];
   statusHistory: OrderStatusHistoryDto[];
 }
 

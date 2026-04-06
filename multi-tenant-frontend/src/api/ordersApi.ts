@@ -19,6 +19,16 @@ export const ordersApi = {
     return response.data;
   },
 
+  getCustomerOrders: async (tenantId: string, query: GetOrdersQuery): Promise<PagedResult<OrderListItem>> => {
+    const response = await httpClient.get<PagedResult<OrderListItem>>(
+      `${orderBasePath(tenantId)}/CustomerOrders`,
+      {
+        params: query,
+      },
+    );
+    return response.data;
+  },
+
   createOrder: async (tenantId: string, payload: CreateOrderRequest): Promise<OrderDto> => {
     const response = await httpClient.post<OrderDto>(orderBasePath(tenantId), payload);
     return response.data;

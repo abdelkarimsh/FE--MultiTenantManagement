@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Empty, Input, Pagination, Spin, Tag, message } from 'antd';
+import { Button, Card, Empty, Input, Spin, Tag, message } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -20,18 +20,27 @@ const StoreProductsPage: React.FC = () => {
   const { addItem, itemCount } = useCart();
   const navigate = useNavigate();
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(8);
+  const [pageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [sortBy] = useState<string | undefined>(undefined);
+  const [isAscending] = useState(true);
 
   const { data, isLoading } = useQuery<PagedResult<ProductDto>>({
-    queryKey: queryKeys.storeProducts.list(currentTenantId, pageNumber, pageSize, search),
+    queryKey: queryKeys.storeProducts.list(
+      currentTenantId,
+      pageNumber,
+      pageSize,
+      search,
+      sortBy,
+      isAscending,
+    ),
     queryFn: () =>
       productsApi.getProducts(
         currentTenantId as string,
         pageNumber,
         pageSize,
-        undefined,
-        true,
+        sortBy,
+        isAscending,
         search || undefined,
       ),
     enabled: !!currentTenantId,
@@ -39,7 +48,7 @@ const StoreProductsPage: React.FC = () => {
   });
 
   const products = data?.items ?? [];
-  const totalCount = data?.totalCount ?? 0;
+  const hasNextPage = typeof data?.hasNext === 'boolean' ? data.hasNext : products.length >= pageSize;
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPageNumber(1);
@@ -88,12 +97,8 @@ const StoreProductsPage: React.FC = () => {
           <div className="flex items-center justify-center py-20">
             <Spin size="large" />
           </div>
-        ) : products.length === 0 ? (
-          <div className="py-20">
-            <Empty description="No products found" />
-          </div>
         ) : (
-          <>
+          <div>
             <div className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => {
                 const inStock = (product.stockQuantity ?? 0) > 0;
@@ -159,18 +164,22 @@ const StoreProductsPage: React.FC = () => {
               })}
             </div>
 
-            {totalCount > pageSize && (
-              <div className="mt-6 flex justify-center">
-                <Pagination
-                  current={pageNumber}
-                  pageSize={pageSize}
-                  total={totalCount}
-                  onChange={(page) => setPageNumber(page)}
-                  showSizeChanger={false}
-                />
+            {products.length === 0 && (
+              <div className="py-20">
+                <Empty description="No products found" />
               </div>
             )}
-          </>
+
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <Button onClick={() => setPageNumber((prev) => Math.max(1, prev - 1))} disabled={pageNumber === 1}>
+                Previous
+              </Button>
+              <span className="text-sm text-slate-600">Page {pageNumber}</span>
+              <Button onClick={() => setPageNumber((prev) => prev + 1)} disabled={!hasNextPage}>
+                Next
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </StorePageContainer>

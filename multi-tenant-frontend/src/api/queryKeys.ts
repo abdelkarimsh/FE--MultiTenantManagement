@@ -23,11 +23,25 @@ export const queryKeys = {
   },
   storeProducts: {
     all: ['store-products'] as const,
-    list: (tenantId: string | null, pageNumber: number, pageSize: number, search: string) =>
-      ['store-products', tenantId, pageNumber, pageSize, search] as const,
+    list: (
+      tenantId: string | null,
+      pageNumber: number,
+      pageSize: number,
+      search: string,
+      sortBy?: string,
+      isAscending = true,
+    ) => ['store-products', tenantId, pageNumber, pageSize, search, sortBy, isAscending] as const,
   },
   storeOrders: {
     all: ['store-orders'] as const,
+    list: (
+      tenantId: string | null,
+      pageNumber: number,
+      pageSize: number,
+      sortBy: string,
+      isAscending: boolean,
+      status?: string,
+    ) => ['store-orders', 'list', tenantId, pageNumber, pageSize, sortBy, isAscending, status] as const,
     detail: (tenantId: string | null, orderId: string | null) =>
       ['store-orders', 'detail', tenantId, orderId] as const,
   },
