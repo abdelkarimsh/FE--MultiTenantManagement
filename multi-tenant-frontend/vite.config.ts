@@ -11,6 +11,10 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: true,
+    allowedHosts: ['.localhost'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

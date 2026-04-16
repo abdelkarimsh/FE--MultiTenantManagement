@@ -50,11 +50,7 @@ const AppRouter: React.FC = () => {
         <Route element={<AuthLayout />}>
           <Route
             path={ROUTES.login}
-            element={
-              isAuthenticated
-                ? <Navigate to={defaultRoute} replace />
-                : <LoginPage />
-            }
+            element={<LoginPage />}
           />
         </Route>
 

@@ -5,8 +5,10 @@ import { useMutation } from '@tanstack/react-query';
 import BrandLogo from '../../components/branding/BrandLogo';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/authApi';
+import { buildStorefrontUrl, getCurrentHostnameSubdomain } from '../../components/store/subdomainDisplay';
 import { useAuth } from '../../context/AuthContext';
-import { getDefaultRouteForRole } from '../../types/auth';
+import { APP_ROLES, getDefaultRouteForRole, normalizeRole } from '../../types/auth';
+import { ROUTES } from '../../router/routes';
 import type { LoginRequest } from '../../types/auth';
 
 const { Title, Text } = Typography;
@@ -20,10 +22,30 @@ const LoginPage: React.FC = () => {
 
     const mutation = useMutation({
         mutationFn: (data: LoginRequest) => authApi.login(data),
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
             message.success('Login successful!');
             login(data);
+
+            const normalizedRole = normalizeRole(data.userRole);
+            if (normalizedRole === APP_ROLES.tenantUser) {
+                try {
+                    const tenant = await authApi.getCurrentUserTenant();
+                    const storefrontUrl = buildStorefrontUrl(tenant.subDomain, ROUTES.store.products, window.location);
+
+                    if (storefrontUrl) {
+                        window.location.replace(storefrontUrl);
+                        return;
+                    }
+                } catch {
+                    // Fall back to existing route-based behavior.
+                }
+
+                navigate(getDefaultRouteForRole(data.userRole));
+                return;
+            }
+
             navigate(getDefaultRouteForRole(data.userRole));
+            return;
         },
         onError: (error: any) => {
             message.error(error.response?.data?.message || 'Login failed.');
@@ -33,6 +55,8 @@ const LoginPage: React.FC = () => {
     const onFinish = (values: LoginRequest) => {
         mutation.mutate(values);
     };
+
+    const loginTitle = getCurrentHostnameSubdomain() ?? 'MultiTenant Page';
 
     return (
         <>
@@ -77,7 +101,7 @@ const LoginPage: React.FC = () => {
                                     fontWeight: 700,
                                 }}
                             >
-                                Welcome to <br /> MultiTenant Page
+                                Welcome to <br /> {loginTitle}
                             </Title>
                         </div>
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatStoreSubdomainDisplay } from './subdomainDisplay';
 
 interface TenantBrandProps {
   name: string;
@@ -30,7 +31,7 @@ const TenantBrand: React.FC<TenantBrandProps> = ({ name, subDomain, logoUrl }) =
       <div className="min-w-0">
         <div className="truncate text-base font-semibold text-slate-900">{name}</div>
         <div className="truncate text-sm text-slate-500">
-          {subDomain ? `${subDomain}.storefront` : 'Authenticated storefront'}
+          {formatStoreSubdomainDisplay(subDomain)}
         </div>
       </div>
     </div>
