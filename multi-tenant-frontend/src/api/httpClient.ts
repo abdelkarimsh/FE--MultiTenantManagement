@@ -4,7 +4,7 @@ import { ROUTES } from '../router/routes';
 
 // Create an Axios instance
 const httpClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://localhost:7114/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:7114/api',
     headers: {
         'Content-Type': 'application/json',
     },
