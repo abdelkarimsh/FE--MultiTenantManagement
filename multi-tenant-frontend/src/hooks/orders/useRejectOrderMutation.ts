@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { isStaleConcurrencyError } from '../../api/apiErrors';
 import { ordersApi } from '../../api/ordersApi';
 import { queryKeys } from '../../api/queryKeys';
 
@@ -6,8 +7,10 @@ export const useRejectOrderMutation = (tenantId: string | null, orderId: string 
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reason: string) =>
-      ordersApi.rejectOrder(tenantId as string, orderId as string, { reason }),
+    mutationFn: (payload: { reason: string; version: number }) =>
+      ordersApi.rejectOrder(tenantId as string, orderId as string, payload.version, {
+        reason: payload.reason,
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.tenantAdminOrders.detail(tenantId, orderId),
@@ -15,6 +18,22 @@ export const useRejectOrderMutation = (tenantId: string | null, orderId: string 
       await queryClient.invalidateQueries({
         queryKey: queryKeys.tenantAdminOrders.all,
       });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.storeOrders.all,
+      });
+    },
+    onError: async (error) => {
+      if (isStaleConcurrencyError(error)) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.tenantAdminOrders.detail(tenantId, orderId),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.tenantAdminOrders.all,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.storeOrders.all,
+        });
+      }
     },
   });
 };

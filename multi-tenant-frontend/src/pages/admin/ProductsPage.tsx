@@ -21,7 +21,9 @@ import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
+import { getMutationErrorMessage, PRODUCT_OUTDATED_MESSAGE } from '../../api/apiErrors';
 import { attachmentsApi } from '../../api/attachmentsApi';
+import { productsApi } from '../../api/productsApi';
 import {
   useCreateProductMutation,
   useDeleteProductMutation,
@@ -38,6 +40,7 @@ interface ProductFormValues {
   price: number;
   imageUrl: string;
   attachmentId?: string | null;
+  version?: number;
   stockQuantity: number;
   isActive: boolean;
 }
@@ -110,7 +113,7 @@ const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleEditClick = (product: ProductDto) => {
+  const openEditModal = (product: ProductDto) => {
     setEditingProduct(product);
     setSelectedImageName('');
     setUploadFailed(false);
@@ -120,10 +123,35 @@ const ProductsPage: React.FC = () => {
       price: product.price,
       imageUrl: product.imageUrl,
       attachmentId: product.attachmentId ?? null,
+      version: product.version,
       stockQuantity: product.stockQuantity,
       isActive: product.isActive,
     });
     setIsModalOpen(true);
+  };
+
+  const handleEditClick = async (product: ProductDto) => {
+    if (typeof product.version === 'number') {
+      openEditModal(product);
+      return;
+    }
+
+    if (!currentTenantId) {
+      message.error('Tenant context is missing');
+      return;
+    }
+
+    try {
+      const latestProduct = await productsApi.getProductById(currentTenantId, product.id);
+      if (typeof latestProduct.version !== 'number') {
+        message.error(PRODUCT_OUTDATED_MESSAGE);
+        return;
+      }
+
+      openEditModal(latestProduct);
+    } catch {
+      message.error(PRODUCT_OUTDATED_MESSAGE);
+    }
   };
 
   const handleImageUpload = (file: File) => {
@@ -146,61 +174,116 @@ const ProductsPage: React.FC = () => {
     },
   };
 
-  const handleSubmit = () => {
-    form
-      .validateFields()
-      .then((values) => {
+  const resolveProductVersion = async (product: ProductDto): Promise<number | null> => {
+    if (typeof product.version === 'number') return product.version;
+
+    if (!currentTenantId) return null;
+
+    const latestProduct = await productsApi.getProductById(currentTenantId, product.id);
+    if (typeof latestProduct.version !== 'number') return null;
+
+    setEditingProduct((prev) => (prev?.id === product.id ? latestProduct : prev));
+    form.setFieldsValue({ version: latestProduct.version });
+    return latestProduct.version;
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      const productValues = {
+        name: values.name,
+        description: values.description,
+        price: values.price,
+        attachmentId: values.attachmentId || null,
+        imageUrl: values.imageUrl,
+        stockQuantity: values.stockQuantity,
+        isActive: values.isActive,
+      };
+
+      if (editingProduct) {
+        let version: number | null = null;
+        try {
+          version = await resolveProductVersion(editingProduct);
+        } catch {
+          version = null;
+        }
+
+        if (typeof version !== 'number') {
+          message.error(PRODUCT_OUTDATED_MESSAGE);
+          return;
+        }
+
         const updatePayload: UpdateProductRequest = {
-          name: values.name,
-          description: values.description,
-          price: values.price,
-          attachmentId: values.attachmentId || null,
-          imageUrl: values.imageUrl,
-          stockQuantity: values.stockQuantity,
-          isActive: values.isActive,
+          ...productValues,
+          version,
         };
 
-        if (editingProduct) {
-          updateMutation.mutate(
-            { id: editingProduct.id, data: updatePayload },
-            {
-              onSuccess: () => {
-                message.success('Product updated successfully');
-                setIsModalOpen(false);
-                resetModalState();
-              },
-              onError: (error: any) => {
-                message.error(error?.response?.data?.message || 'Failed to update product');
-              },
+        updateMutation.mutate(
+          { id: editingProduct.id, data: updatePayload },
+          {
+            onSuccess: () => {
+              message.success('Product updated successfully');
+              setIsModalOpen(false);
+              resetModalState();
             },
-          );
-          return;
-        }
-
-        if (!currentTenantId) {
-          message.error('Tenant context is missing');
-          return;
-        }
-
-        const createPayload: CreateProductRequest = {
-          tenantId: currentTenantId,
-          ...updatePayload,
-        };
-
-        createMutation.mutate(createPayload, {
-          onSuccess: () => {
-            message.success('Product created successfully');
-            setIsModalOpen(false);
-            resetModalState();
+            onError: (error: unknown) => {
+              message.error(getMutationErrorMessage(error, 'Failed to update product'));
+            },
           },
-          onError: (error: any) => {
-            message.error(error?.response?.data?.message || 'Failed to create product');
-          },
-        });
-      })
-      .catch(() => {
-        // Validation errors are displayed by Form.Item.
+        );
+        return;
+      }
+
+      if (!currentTenantId) {
+        message.error('Tenant context is missing');
+        return;
+      }
+
+      const createPayload: CreateProductRequest = {
+        tenantId: currentTenantId,
+        ...productValues,
+      };
+
+      createMutation.mutate(createPayload, {
+        onSuccess: () => {
+          message.success('Product created successfully');
+          setIsModalOpen(false);
+          resetModalState();
+        },
+        onError: (error: unknown) => {
+          message.error(getMutationErrorMessage(error, 'Failed to create product'));
+        },
       });
+    } catch {
+      // Validation errors are displayed by Form.Item.
+    }
+  };
+
+  const handleDeleteProduct = async (product: ProductDto) => {
+    let version: number | null = null;
+
+    try {
+      version = await resolveProductVersion(product);
+    } catch {
+      version = null;
+    }
+
+    if (typeof version !== 'number') {
+      message.error(PRODUCT_OUTDATED_MESSAGE);
+      return;
+    }
+
+    deleteMutation.mutate(
+      { id: product.id, version },
+      {
+        onSuccess: () => {
+          message.success('Product deleted successfully');
+        },
+        onError: (error: unknown) => {
+          message.error(getMutationErrorMessage(error, 'Failed to delete product'));
+        },
+      },
+    );
   };
 
   const columns: ColumnsType<ProductDto> = [
@@ -238,16 +321,7 @@ const ProductsPage: React.FC = () => {
           <Popconfirm
             title="Delete product?"
             description="Are you sure you want to delete this product?"
-            onConfirm={() =>
-              deleteMutation.mutate(record.id, {
-                onSuccess: () => {
-                  message.success('Product deleted successfully');
-                },
-                onError: (error: any) => {
-                  message.error(error?.response?.data?.message || 'Failed to delete product');
-                },
-              })
-            }
+            onConfirm={() => handleDeleteProduct(record)}
           >
             <Button icon={<DeleteOutlined />} size="small" danger>
               Delete
@@ -354,6 +428,10 @@ const ProductsPage: React.FC = () => {
               </Space>
 
               <Form.Item name="attachmentId" noStyle>
+                <Input type="hidden" />
+              </Form.Item>
+
+              <Form.Item name="version" noStyle>
                 <Input type="hidden" />
               </Form.Item>
 

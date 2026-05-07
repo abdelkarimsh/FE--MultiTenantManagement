@@ -3,6 +3,7 @@ import type {
   CreateTenantRequest,
   PagedResult,
   TenantDto,
+  TenantDropdownDto,
   TenantQueryParams,
   TenantSettingsUpdateRequest,
   UpdateTenantRequest,
@@ -24,6 +25,17 @@ export const tenantApi = {
 
   create: (data: CreateTenantRequest) =>
     httpClient.post(TENANT_ENDPOINTS.create, data),
+
+  getTenantDropdown: async (searchTerm?: string): Promise<TenantDropdownDto[]> => {
+    const normalizedSearchTerm = searchTerm?.trim();
+    const response = await httpClient.get<TenantDropdownDto[]>('/Tenants/dropdown', {
+      params: {
+        maxResults: 10,
+        ...(normalizedSearchTerm ? { searchTerm: normalizedSearchTerm } : {}),
+      },
+    });
+    return response.data;
+  },
 
   getById: async (tenantId: string): Promise<TenantDto> => {
     const response = await httpClient.get<TenantDto>(TENANT_ENDPOINTS.getById(tenantId));

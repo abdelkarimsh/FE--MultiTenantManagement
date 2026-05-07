@@ -23,6 +23,11 @@ export interface TenantDto {
   storeSetting: TenantStoreSetting | null;
 }
 
+export interface TenantDropdownDto {
+  id: string;
+  name: string;
+}
+
 export interface TenantStorefrontDto {
   id: string;
   name: string;

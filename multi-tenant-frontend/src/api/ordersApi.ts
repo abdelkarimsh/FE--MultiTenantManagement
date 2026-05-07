@@ -39,15 +39,31 @@ export const ordersApi = {
     return response.data;
   },
 
-  cancelOrder: async (tenantId: string, orderId: string, payload: CancelOrderRequest): Promise<void> => {
-    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/cancel`, payload);
+  cancelOrder: async (
+    tenantId: string,
+    orderId: string,
+    version: number,
+    payload: CancelOrderRequest,
+  ): Promise<void> => {
+    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/cancel`, payload, {
+      params: { version },
+    });
   },
 
-  approveOrder: async (tenantId: string, orderId: string): Promise<void> => {
-    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/approve`);
+  approveOrder: async (tenantId: string, orderId: string, version: number): Promise<void> => {
+    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/approve`, undefined, {
+      params: { version },
+    });
   },
 
-  rejectOrder: async (tenantId: string, orderId: string, payload: RejectOrderRequest): Promise<void> => {
-    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/reject`, payload);
+  rejectOrder: async (
+    tenantId: string,
+    orderId: string,
+    version: number,
+    payload: RejectOrderRequest,
+  ): Promise<void> => {
+    await httpClient.post(`${orderBasePath(tenantId)}/${orderId}/reject`, payload, {
+      params: { version },
+    });
   },
 };

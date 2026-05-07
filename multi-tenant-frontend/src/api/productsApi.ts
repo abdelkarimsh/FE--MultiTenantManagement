@@ -42,8 +42,10 @@ export const productsApi = {
     await httpClient.put(`/tenants/${tenantId}/products/${productId}`, payload);
   },
 
-  deleteProduct: async (tenantId: string, productId: string): Promise<void> => {
-    await httpClient.delete(`/tenants/${tenantId}/products/${productId}`);
+  deleteProduct: async (tenantId: string, productId: string, version: number): Promise<void> => {
+    await httpClient.delete(`/tenants/${tenantId}/products/${productId}`, {
+      params: { version },
+    });
   },
 };
 

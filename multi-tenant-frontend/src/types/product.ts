@@ -3,6 +3,7 @@ import type { PagedResult } from './tenant';
 export interface ProductDto {
   id: string;
   tenantId: string;
+  version?: number;
   attachmentId?: string | null;
   name: string;
   description: string;
@@ -25,6 +26,7 @@ export interface CreateProductRequest {
 }
 
 export interface UpdateProductRequest {
+  version: number;
   attachmentId?: string | null;
   name: string;
   description: string;

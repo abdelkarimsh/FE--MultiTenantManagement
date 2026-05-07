@@ -9,6 +9,7 @@ interface CartContextValue {
   subtotal: number;
   addItem: (tenantId: string, product: ProductDto, quantity?: number) => void;
   removeItem: (productId: string) => void;
+  updateItemProductVersion: (productId: string, productVersion: number) => void;
   increaseQuantity: (productId: string) => void;
   decreaseQuantity: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
@@ -66,6 +67,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...item,
             quantity: toSafeQuantity(item.quantity + quantity, stockQuantity),
             price: product.price,
+            productVersion: product.version,
             stockQuantity,
             imageUrl: product.imageUrl,
             name: product.name,
@@ -78,6 +80,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         {
           productId: product.id,
           tenantId,
+          productVersion: product.version,
           name: product.name,
           price: product.price,
           imageUrl: product.imageUrl,
@@ -90,6 +93,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeItem = (productId: string) => {
     setItems((prev) => prev.filter((item) => item.productId !== productId));
+  };
+
+  const updateItemProductVersion = (productId: string, productVersion: number) => {
+    setItems((prev) =>
+      prev.map((item) => (item.productId === productId ? { ...item, productVersion } : item)),
+    );
   };
 
   const clearCart = () => {
@@ -106,6 +115,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subtotal,
       addItem,
       removeItem,
+      updateItemProductVersion,
       increaseQuantity: (productId: string) => {
         const item = items.find((x) => x.productId === productId);
         if (!item) return;

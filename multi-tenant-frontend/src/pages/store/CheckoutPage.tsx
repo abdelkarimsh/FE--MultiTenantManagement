@@ -1,88 +1,95 @@
 import React from 'react';
-import { Alert, Button, Card, Empty, Form, Input, Typography, message } from 'antd';
+import { Button, Card, Empty, Form, Input, Typography, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { getMutationErrorMessage, PRODUCT_OUTDATED_MESSAGE } from '../../api/apiErrors';
+import { productsApi } from '../../api/productsApi';
 import StorePageContainer from '../../components/store/StorePageContainer';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { ROUTES } from '../../router/routes';
 import { useCreateOrderMutation } from '../../hooks/orders/useCreateOrderMutation';
-import type { CreateOrderRequest } from '../../types/order';
+import type { CreateOrderItemRequest, CreateOrderRequest } from '../../types/order';
 
 interface CheckoutFormValues {
   deliveryAddress: string;
 }
 
-const getCustomerIdFromToken = (token: string | null): string | null => {
-  if (!token) return null;
-
-  try {
-    const [, payload] = token.split('.');
-    if (!payload) return null;
-
-    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const paddedPayload = normalizedPayload.padEnd(
-      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
-      '=',
-    );
-    const decodedPayload = JSON.parse(atob(paddedPayload)) as Record<string, unknown>;
-
-    const candidate =
-      decodedPayload.sub ??
-      decodedPayload.nameid ??
-      decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
-
-    return typeof candidate === 'string' && candidate.trim().length > 0 ? candidate : null;
-  } catch {
-    return null;
-  }
-};
-
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm<CheckoutFormValues>();
-  const { items, subtotal, clearCart } = useCart();
-  const { currentTenantId, token } = useAuth();
-  const customerId = getCustomerIdFromToken(token);
+  const { items, subtotal, clearCart, updateItemProductVersion } = useCart();
+  const { currentTenantId } = useAuth();
 
   const createBaseMutation = useCreateOrderMutation(currentTenantId);
 
-  const handleSubmit = (values: CheckoutFormValues) => {
+  const resolveOrderItems = async (): Promise<CreateOrderItemRequest[] | null> => {
     if (!currentTenantId) {
-      message.error('Tenant context is missing');
-      return;
+      return null;
     }
 
-    if (!customerId) {
-      message.error('Unable to resolve current user id from the session token');
-      return;
+    const resolvedItems = await Promise.all(
+      items.map(async (item) => {
+        if (typeof item.productVersion === 'number') {
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            productVersion: item.productVersion,
+          };
+        }
+
+        const latestProduct = await productsApi.getProductById(currentTenantId, item.productId);
+        if (typeof latestProduct.version !== 'number') return null;
+
+        updateItemProductVersion(item.productId, latestProduct.version);
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          productVersion: latestProduct.version,
+        };
+      }),
+    );
+
+    return resolvedItems.every((item): item is CreateOrderItemRequest => item !== null)
+      ? resolvedItems
+      : null;
+  };
+
+  const handleSubmit = async (values: CheckoutFormValues) => {
+    try {
+      if (!currentTenantId) {
+        message.error('Tenant context is missing');
+        return;
+      }
+
+      if (items.length === 0) {
+        message.error('Cart is empty');
+        return;
+      }
+
+      const orderItems = await resolveOrderItems();
+      if (!orderItems) {
+        message.error(PRODUCT_OUTDATED_MESSAGE);
+        return;
+      }
+
+      const payload: CreateOrderRequest = {
+        deliveryAddress: values.deliveryAddress.trim(),
+        items: orderItems,
+      };
+
+      createBaseMutation.mutate(payload, {
+        onSuccess: (order) => {
+          clearCart();
+          message.success('Order created successfully');
+          navigate(ROUTES.store.orderDetails(order.id));
+        },
+        onError: (error: unknown) => {
+          message.error(getMutationErrorMessage(error, 'Failed to create order'));
+        },
+      });
+    } catch {
+      message.error(PRODUCT_OUTDATED_MESSAGE);
     }
-
-    if (items.length === 0) {
-      message.error('Cart is empty');
-      return;
-    }
-
-    const payload: CreateOrderRequest = {
-      customerId,
-      deliveryAddress: values.deliveryAddress.trim(),
-      totalAmount: subtotal,
-      items: items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.price,
-      })),
-    };
-
-    createBaseMutation.mutate(payload, {
-      onSuccess: (order) => {
-        clearCart();
-        message.success('Order created successfully');
-        navigate(ROUTES.store.orderDetails(order.id));
-      },
-      onError: (error: any) => {
-        message.error(error?.response?.data?.message || 'Failed to create order');
-      },
-    });
   };
 
   if (items.length === 0) {
@@ -114,14 +121,6 @@ const CheckoutPage: React.FC = () => {
           </Typography.Text>
         </div>
 
-        {!customerId && (
-          <Alert
-            type="warning"
-            showIcon
-            message="Your session is missing a customer identifier. You cannot place an order right now."
-          />
-        )}
-
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2" title="Delivery Details">
             <Form form={form} layout="vertical" onFinish={handleSubmit}>
@@ -141,7 +140,6 @@ const CheckoutPage: React.FC = () => {
                   type="primary"
                   htmlType="submit"
                   loading={createBaseMutation.isPending}
-                  disabled={!customerId}
                 >
                   Place Order
                 </Button>

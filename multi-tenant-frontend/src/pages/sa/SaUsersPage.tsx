@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -15,8 +15,10 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { tenantApi } from '../../api/tenantApi';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
 import { APP_ROLES, normalizeRole } from '../../types/auth';
+import type { TenantDropdownDto } from '../../types/tenant';
 import type { CreateUserRequest, UpdateUserRequest, UserDto } from '../../types/users';
 import {
   useCreateUserMutation,
@@ -27,10 +29,22 @@ import { useSuperAdminUsersQuery } from '../../hooks/users/useUsersQueries';
 
 const { Option } = Select;
 
+interface UserFormValues {
+  email: string;
+  password?: string;
+  phoneNumber?: string | null;
+  tenantId?: string | null;
+  role: string;
+}
+
 const SaUsersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDto | null>(null);
-  const [form] = Form.useForm();
+  const [tenantOptions, setTenantOptions] = useState<TenantDropdownDto[]>([]);
+  const [tenantSearch, setTenantSearch] = useState('');
+  const [isTenantLoading, setIsTenantLoading] = useState(false);
+  const [form] = Form.useForm<UserFormValues>();
+  const selectedRole = Form.useWatch('role', form);
 
   const { data: users, isLoading } = useSuperAdminUsersQuery();
   const createMutation = useCreateUserMutation('superAdmin');
@@ -40,19 +54,69 @@ const SaUsersPage: React.FC = () => {
   const isSaving =
     createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
+  const isSystemAdminRole = selectedRole === APP_ROLES.systemAdmin;
+  const tenantSelectOptions = useMemo(
+    () => tenantOptions.map((tenant) => ({ value: tenant.id, label: tenant.name })),
+    [tenantOptions],
+  );
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setIsTenantLoading(true);
+      tenantApi
+        .getTenantDropdown(tenantSearch)
+        .then((tenants) => {
+          setTenantOptions((prev) => {
+            const selectedTenantId = form.getFieldValue('tenantId');
+            const selectedTenant = prev.find((tenant) => tenant.id === selectedTenantId);
+            if (!selectedTenant || tenants.some((tenant) => tenant.id === selectedTenant.id)) {
+              return tenants;
+            }
+
+            return [selectedTenant, ...tenants];
+          });
+        })
+        .catch(() => {
+          message.error('Failed to load tenants');
+        })
+        .finally(() => {
+          setIsTenantLoading(false);
+        });
+    }, tenantSearch ? 300 : 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [form, isModalOpen, tenantSearch]);
+
+  useEffect(() => {
+    if (selectedRole === APP_ROLES.systemAdmin) {
+      form.setFieldValue('tenantId', null);
+    }
+  }, [form, selectedRole]);
+
   const handleAddClick = () => {
     setEditingUser(null);
+    setTenantSearch('');
+    setTenantOptions([]);
     form.resetFields();
     setIsModalOpen(true);
   };
 
   const handleEditClick = (user: UserDto) => {
+    const userTenantName = user.tenant?.trim();
+
     setEditingUser(user);
+    setTenantSearch('');
+    setTenantOptions(
+      user.tenantId ? [{ id: user.tenantId, name: userTenantName || 'Assigned tenant' }] : [],
+    );
     form.setFieldsValue({
       email: user.email,
       phoneNumber: user.phoneNumber,
-      tenantId: user.tenantId,
       role: normalizeRole(user.roles?.[0]) ?? APP_ROLES.tenantUser,
+      tenantId:
+        normalizeRole(user.roles?.[0]) === APP_ROLES.systemAdmin ? null : user.tenantId ?? null,
     });
     setIsModalOpen(true);
   };
@@ -63,8 +127,8 @@ const SaUsersPage: React.FC = () => {
       .then((values) => {
         if (editingUser) {
           const payload: UpdateUserRequest = {
-            phoneNumber: values.phoneNumber,
-            tenantId: values.tenantId || null,
+            phoneNumber: values.phoneNumber || undefined,
+            tenantId: values.role === APP_ROLES.systemAdmin ? null : values.tenantId || null,
             role: values.role,
           };
 
@@ -87,9 +151,9 @@ const SaUsersPage: React.FC = () => {
 
         const payload: CreateUserRequest = {
           email: values.email,
-          password: values.password,
-          phoneNumber: values.phoneNumber,
-          tenantId: values.tenantId || null,
+          password: values.password as string,
+          phoneNumber: values.phoneNumber || undefined,
+          tenantId: values.role === APP_ROLES.systemAdmin ? null : values.tenantId || null,
           role: values.role,
         };
 
@@ -210,6 +274,8 @@ const SaUsersPage: React.FC = () => {
         onCancel={() => {
           setIsModalOpen(false);
           setEditingUser(null);
+          setTenantSearch('');
+          setTenantOptions([]);
           form.resetFields();
         }}
         onOk={handleSubmit}
@@ -247,10 +313,6 @@ const SaUsersPage: React.FC = () => {
             <Input placeholder="+9705..." />
           </Form.Item>
 
-          <Form.Item label="Tenant Id" name="tenantId">
-            <Input placeholder="Optional Tenant UUID" />
-          </Form.Item>
-
           <Form.Item
             label="Role"
             name="role"
@@ -262,6 +324,27 @@ const SaUsersPage: React.FC = () => {
               <Option value={APP_ROLES.tenantUser}>{APP_ROLES.tenantUser}</Option>
             </Select>
           </Form.Item>
+
+          {!isSystemAdminRole && (
+            <Form.Item
+              label="Tenant"
+              name="tenantId"
+              rules={[{ required: true, message: 'Tenant is required for this role' }]}
+            >
+              <Select
+                allowClear
+                showSearch
+                filterOption={false}
+                loading={isTenantLoading}
+                notFoundContent={isTenantLoading ? <Spin size="small" /> : null}
+                options={tenantSelectOptions}
+                placeholder="Search and select a tenant"
+                onSearch={setTenantSearch}
+                onClear={() => setTenantSearch('')}
+                onChange={(value) => form.setFieldValue('tenantId', value ?? null)}
+              />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     </PageContainer>
@@ -269,4 +352,3 @@ const SaUsersPage: React.FC = () => {
 };
 
 export default SaUsersPage;
-

@@ -15,6 +15,7 @@ import {
 import { ClockCircleOutlined, ShoppingOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
+import { getMutationErrorMessage } from '../../api/apiErrors';
 import StorePageContainer from '../../components/store/StorePageContainer';
 import OrderStatusTag from '../../components/common/OrderStatusTag';
 import { useAuth } from '../../context/AuthContext';
@@ -52,18 +53,20 @@ const StoreOrderDetailsPage: React.FC = () => {
     isLoading,
     isError,
     error,
+    refetch,
   } = useStoreOrderDetailsQuery(currentTenantId, orderId ?? null);
 
   const cancelBaseMutation = useCancelOrderMutation(currentTenantId, orderId ?? null);
   const cancelMutation = useMutation({
-    mutationFn: (reason: string) => cancelBaseMutation.mutateAsync(reason),
+    mutationFn: (payload: { reason: string; version: number }) =>
+      cancelBaseMutation.mutateAsync(payload),
     onSuccess: () => {
       message.success('Order cancelled successfully');
       setCancelModalOpen(false);
       form.resetFields();
     },
-    onError: (cancelError: any) => {
-      message.error(cancelError?.response?.data?.message || 'Failed to cancel order');
+    onError: (cancelError: unknown) => {
+      message.error(getMutationErrorMessage(cancelError, 'Failed to cancel order'));
     },
   });
 
@@ -90,15 +93,26 @@ const StoreOrderDetailsPage: React.FC = () => {
     });
   }, [tenant?.currency]);
 
-  const handleConfirmCancel = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        cancelMutation.mutate(values.reason.trim());
-      })
-      .catch(() => {
-        // Validation handled by Form.Item rules.
-      });
+  const resolveOrderVersion = async () => {
+    if (typeof order?.version === 'number') return order.version;
+
+    const latestOrder = await refetch();
+    return typeof latestOrder.data?.version === 'number' ? latestOrder.data.version : null;
+  };
+
+  const handleConfirmCancel = async () => {
+    try {
+      const values = await form.validateFields();
+      const version = await resolveOrderVersion();
+      if (typeof version !== 'number') {
+        message.error('Order data is outdated. Please refresh and try again.');
+        return;
+      }
+
+      cancelMutation.mutate({ reason: values.reason.trim(), version });
+    } catch {
+      // Validation handled by Form.Item rules.
+    }
   };
 
   if (!currentTenantId || !orderId) {

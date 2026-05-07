@@ -16,6 +16,7 @@ import {
 import { ClockCircleOutlined, ShoppingCartOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
+import { getMutationErrorMessage } from '../../api/apiErrors';
 import PageContainer from '../../layouts/ProLayout/PageContainer';
 import { useAuth } from '../../context/AuthContext';
 import { canTenantAdminManageOrder } from '../../types/order';
@@ -50,28 +51,30 @@ const OrderDetailsPage: React.FC = () => {
     isLoading,
     isError,
     error,
+    refetch,
   } = useTenantAdminOrderDetailsQuery(currentTenantId, orderId ?? null);
 
   const approveBaseMutation = useApproveOrderMutation(currentTenantId, orderId ?? null);
   const approveMutation = useMutation({
-    mutationFn: () => approveBaseMutation.mutateAsync(),
+    mutationFn: (version: number) => approveBaseMutation.mutateAsync(version),
     onSuccess: () => {
       message.success('Order approved successfully');
     },
-    onError: (approveError: any) => {
-      message.error(approveError?.response?.data?.message || 'Failed to approve order');
+    onError: (approveError: unknown) => {
+      message.error(getMutationErrorMessage(approveError, 'Failed to approve order'));
     },
   });
   const rejectBaseMutation = useRejectOrderMutation(currentTenantId, orderId ?? null);
   const rejectMutation = useMutation({
-    mutationFn: (reason: string) => rejectBaseMutation.mutateAsync(reason),
+    mutationFn: (payload: { reason: string; version: number }) =>
+      rejectBaseMutation.mutateAsync(payload),
     onSuccess: () => {
       message.success('Order rejected successfully');
       setRejectModalOpen(false);
       rejectForm.resetFields();
     },
-    onError: (rejectError: any) => {
-      message.error(rejectError?.response?.data?.message || 'Failed to reject order');
+    onError: (rejectError: unknown) => {
+      message.error(getMutationErrorMessage(rejectError, 'Failed to reject order'));
     },
   });
 
@@ -85,13 +88,36 @@ const OrderDetailsPage: React.FC = () => {
     [],
   );
 
-  const handleRejectSubmit = () => {
-    rejectForm
-      .validateFields()
-      .then((values) => rejectMutation.mutate(values.reason.trim()))
-      .catch(() => {
-        // Validation is displayed by Form.
-      });
+  const resolveOrderVersion = async () => {
+    if (typeof order?.version === 'number') return order.version;
+
+    const latestOrder = await refetch();
+    return typeof latestOrder.data?.version === 'number' ? latestOrder.data.version : null;
+  };
+
+  const handleApprove = async () => {
+    const version = await resolveOrderVersion();
+    if (typeof version !== 'number') {
+      message.error('Order data is outdated. Please refresh and try again.');
+      return;
+    }
+
+    approveMutation.mutate(version);
+  };
+
+  const handleRejectSubmit = async () => {
+    try {
+      const values = await rejectForm.validateFields();
+      const version = await resolveOrderVersion();
+      if (typeof version !== 'number') {
+        message.error('Order data is outdated. Please refresh and try again.');
+        return;
+      }
+
+      rejectMutation.mutate({ reason: values.reason.trim(), version });
+    } catch {
+      // Validation is displayed by Form.
+    }
   };
 
   if (!currentTenantId || !orderId) {
@@ -201,7 +227,7 @@ const OrderDetailsPage: React.FC = () => {
               <Popconfirm
                 title="Approve this order?"
                 description="This action will move the order to Approved."
-                onConfirm={() => approveMutation.mutate()}
+                onConfirm={handleApprove}
                 okButtonProps={{ loading: approveMutation.isPending }}
               >
                 <Button type="primary" loading={approveMutation.isPending}>

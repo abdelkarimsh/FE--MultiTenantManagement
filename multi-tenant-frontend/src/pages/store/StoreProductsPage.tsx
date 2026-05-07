@@ -3,6 +3,7 @@ import { Button, Card, Empty, Input, Spin, Tag, message } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { PRODUCT_OUTDATED_MESSAGE } from '../../api/apiErrors';
 import { queryKeys } from '../../api/queryKeys';
 import { productsApi } from '../../api/productsApi';
 import StorePageContainer from '../../components/store/StorePageContainer';
@@ -57,14 +58,30 @@ const StoreProductsPage: React.FC = () => {
 
   const headerTitle = useMemo(() => (search ? `Results for "${search}"` : 'Products'), [search]);
 
-  const handleAddToCart = (product: ProductDto) => {
+  const handleAddToCart = async (product: ProductDto) => {
     if (!currentTenantId) {
       message.error('Tenant context is missing');
       return;
     }
 
-    addItem(currentTenantId, product, 1);
-    message.success(`${product.name} added to cart`);
+    let cartProduct = product;
+
+    if (typeof cartProduct.version !== 'number') {
+      try {
+        cartProduct = await productsApi.getProductById(currentTenantId, product.id);
+      } catch {
+        message.error(PRODUCT_OUTDATED_MESSAGE);
+        return;
+      }
+    }
+
+    if (typeof cartProduct.version !== 'number') {
+      message.error(PRODUCT_OUTDATED_MESSAGE);
+      return;
+    }
+
+    addItem(currentTenantId, cartProduct, 1);
+    message.success(`${cartProduct.name} added to cart`);
   };
 
   return (

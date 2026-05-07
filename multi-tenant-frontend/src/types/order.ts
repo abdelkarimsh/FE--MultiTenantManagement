@@ -31,6 +31,7 @@ export interface OrderItemDto {
 export interface OrderDto {
   id: string;
   tenantId: string;
+  version?: number;
   customerId: string;
   deliveryAddress: string;
   status: OrderStatus;
@@ -42,9 +43,10 @@ export interface OrderDto {
   statusHistory: OrderStatusHistoryDto[];
 }
 
-export interface OrderListItem {
+export interface OrderListItemDto {
   id: string;
   tenantId: string;
+  version?: number;
   customerId: string;
   deliveryAddress: string;
   status: OrderStatus;
@@ -52,6 +54,8 @@ export interface OrderListItem {
   createdAtUtc: string;
   updatedAtUtc: string | null;
 }
+
+export type OrderListItem = OrderListItemDto;
 
 export interface GetOrdersQuery {
   pageNumber?: number;
@@ -66,13 +70,11 @@ export interface GetOrdersQuery {
 export interface CreateOrderItemRequest {
   productId: string;
   quantity: number;
-  unitPrice: number;
+  productVersion: number;
 }
 
 export interface CreateOrderRequest {
-  customerId: string;
   deliveryAddress: string;
-  totalAmount: number;
   items: CreateOrderItemRequest[];
 }
 
@@ -87,6 +89,7 @@ export interface RejectOrderRequest {
 export interface CartItem {
   productId: string;
   tenantId: string;
+  productVersion?: number;
   name: string;
   price: number;
   imageUrl: string;
