@@ -2,9 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * index.css
+ * RULE: Do not delete any class that a component references.
+ *       New token-based classes go in theme/cssVariables.css.
+ *       Legacy classes stay here until the components are updated.
+ */
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-family, 'Inter', system-ui, sans-serif);
+  line-height: 1.5715;
   font-weight: 400;
 }
 
@@ -12,21 +20,34 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background-color: #f3f4f6;
-  /* Light gray background matching theme */
+  /* Use CSS variable with safe fallback so old and new both work */
+  background-color: var(--color-bg-layout, #f3f4f6);
+  color: var(--color-text, #141414);
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Galaxy Background Effect */
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border, #d9d9d9); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary, #8c8c8c); }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LEGACY CLASSES — AuthLayout.tsx + LoginPage.tsx depend on these.
+   Do NOT remove until the components themselves are updated.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* AuthLayout wrapper */
 .galaxy-bg {
   background: radial-gradient(circle at center, #0B468C 0%, #001529 100%);
   position: relative;
   overflow: hidden;
 }
 
+/* Star overlay inside AuthLayout */
 .galaxy-stars {
   position: absolute;
   top: 0;
@@ -34,56 +55,44 @@ body {
   right: 0;
   bottom: 0;
   background-image:
-    radial-gradient(1.5px 1.5px at 20px 30px, #ffffff, rgba(0, 0, 0, 0)),
-    radial-gradient(1.5px 1.5px at 40px 70px, #ffffff, rgba(0, 0, 0, 0)),
-    radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0, 0, 0, 0)),
-    radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0, 0, 0, 0));
+    radial-gradient(1.5px 1.5px at 20px 30px,  #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 40px 70px,  #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px   1px   at 90px 40px,  #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px   2px   at 160px 120px,#ffffff, rgba(0,0,0,0));
   background-repeat: repeat;
   background-size: 300px 300px;
   opacity: 0.4;
   animation: twinkle 5s infinite ease-in-out alternate;
+  pointer-events: none;
 }
 
+/* Rain overlay inside AuthLayout */
 .galaxy-rain {
   position: absolute;
   top: -50%;
   left: -50%;
   right: -50%;
   bottom: -50%;
-  background-image: repeating-linear-gradient(45deg,
-      transparent 0,
-      transparent 50px,
-      rgba(255, 255, 255, 0.03) 50px,
-      rgba(255, 255, 255, 0.03) 51px);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 50px,
+    rgba(255,255,255,0.03) 50px,
+    rgba(255,255,255,0.03) 51px
+  );
   transform: rotate(-20deg);
+  pointer-events: none;
 }
 
 @keyframes twinkle {
-  0% {
-    opacity: 0.3;
-  }
-
-  100% {
-    opacity: 0.5;
-  }
+  0%   { opacity: 0.3; }
+  100% { opacity: 0.5; }
 }
 
-/* Custom Shape for the Login Card Wave */
-.wave-clip {
-  clip-path: ellipse(80% 140% at 100% 50%);
-  /* This approximates the curve. 
-       Left side (white) will be on top.
-       Actually, better: make the white part a shape.
-       Let's try a different approach in the component using SVG or simple overlapping.
-       But I'll keep this class just in case.
-    */
-}
-
-/* Custom Inputs */
+/* Login form inputs — pill shape with teal accent */
 .galaxy-input .ant-input,
 .galaxy-input .ant-input-password {
   border-radius: 9999px !important;
-  /* Full pill */
   padding-left: 20px;
   padding-right: 20px;
 }
@@ -100,22 +109,86 @@ body {
 .galaxy-input .ant-input-affix-wrapper:focus,
 .galaxy-input .ant-input-affix-wrapper-focused {
   border-color: #00d2d3 !important;
-  box-shadow: 0 0 0 2px rgba(0, 210, 211, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(0,210,211,0.2) !important;
 }
 
-/* Custom Button */
+/* Login button */
 .galaxy-btn {
   background: linear-gradient(90deg, #00d2d3 0%, #00e0c6 100%) !important;
   border: none !important;
   border-radius: 9999px !important;
   height: 44px !important;
   font-weight: 600 !important;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(0, 210, 211, 0.4);
+  box-shadow: 0 4px 15px rgba(0,210,211,0.4) !important;
+  color: #ffffff !important;
 }
 
 .galaxy-btn:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,210,211,0.5) !important;
+}
+
+/* Wave clip helper (used in LoginPage SVG separator) */
+.wave-clip {
+  clip-path: ellipse(80% 140% at 100% 50%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ANT DESIGN GLOBAL OVERRIDES — token-aware, with safe fallbacks
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Table hover row */
+.ant-table-tbody > tr:hover > td {
+  background-color: var(--color-primary-bg, #e6f4ff) !important;
+}
+
+/* Table zebra */
+.ant-table-tbody > tr:nth-child(even) > td {
+  background-color: var(--color-bg-spotlight, #fafafa);
+}
+
+/* Card elevation */
+.ant-card {
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.06)) !important;
+}
+
+/* Modal elevation */
+.ant-modal-content {
+  box-shadow: var(--shadow-elevated, 0 4px 12px rgba(0,0,0,.10)) !important;
+}
+
+/* Input focus ring */
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(22,119,255,.15)) !important;
+}
+
+/* Select focus ring */
+.ant-select-focused .ant-select-selector {
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(22,119,255,.15)) !important;
+}
+
+/* Sider shadow instead of border */
+.ant-layout-sider {
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(0,0,0,.04)) !important;
+}
+
+/* Tags */
+.ant-tag {
+  border-radius: var(--radius-sm, 4px) !important;
+  font-size: 11px !important;
+}
+
+/* ─── Page transitions ──────────────────────────────────────────────────────── */
+.page-enter {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }

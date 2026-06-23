@@ -52,4 +52,8 @@ export const queryKeys = {
     detail: (tenantId: string | null, orderId: string | null) =>
       ['tenant-admin-orders', 'detail', tenantId, orderId] as const,
   },
+  dashboard: {
+    summary:       ['dashboard', 'summary']                    as const,
+    monthlyOrders: (year: number) => ['dashboard', 'monthly-orders', year] as const,
+  },
 } as const;

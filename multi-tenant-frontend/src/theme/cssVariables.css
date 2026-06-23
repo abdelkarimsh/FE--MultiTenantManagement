@@ -1,0 +1,236 @@
+/*
+ * Design System — CSS Custom Properties
+ * These mirror the tokens.ts values so non-AntD components
+ * (public pages, custom CSS) use the same system.
+ * Import this in main.tsx BEFORE any other stylesheet.
+ */
+
+/* ─── Light Mode (default) ──────────────────────────────────────────────────── */
+:root {
+  /* Brand */
+  --color-primary:              #1677ff;
+  --color-primary-hover:        #4096ff;
+  --color-primary-active:       #0958d9;
+  --color-primary-bg:           #e6f4ff;
+  --color-primary-bg-hover:     #bae0ff;
+  --color-primary-border:       #91caff;
+  --color-primary-text:         #002c8c;
+
+  /* Backgrounds */
+  --color-bg-layout:            #f5f7fa;
+  --color-bg-container:         #ffffff;
+  --color-bg-elevated:          #ffffff;
+  --color-bg-spotlight:         #fafafa;
+
+  /* Text */
+  --color-text:                 #141414;
+  --color-text-secondary:       #595959;
+  --color-text-tertiary:        #8c8c8c;
+  --color-text-disabled:        #bfbfbf;
+  --color-text-inverse:         #ffffff;
+
+  /* Borders */
+  --color-border:               #d9d9d9;
+  --color-border-secondary:     #f0f0f0;
+
+  /* Semantic */
+  --color-success:              #52c41a;
+  --color-success-dark:         #389e0d;
+  --color-success-bg:           #f6ffed;
+  --color-success-border:       #b7eb8f;
+
+  --color-warning:              #faad14;
+  --color-warning-dark:         #d48806;
+  --color-warning-bg:           #fffbe6;
+  --color-warning-border:       #ffe58f;
+
+  --color-error:                #ff4d4f;
+  --color-error-dark:           #cf1322;
+  --color-error-bg:             #fff2f0;
+  --color-error-border:         #ffccc7;
+
+  --color-info:                 #1677ff;
+  --color-info-bg:              #e6f4ff;
+  --color-info-border:          #91caff;
+
+  /* Shape */
+  --radius-sm:                  4px;
+  --radius:                     6px;
+  --radius-md:                  8px;
+  --radius-lg:                  12px;
+  --radius-pill:                20px;
+
+  /* Shadows */
+  --shadow-card:                0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.06);
+  --shadow-elevated:            0 4px 12px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  --shadow-focus:               0 0 0 3px rgba(22,119,255,.15);
+
+  /* Typography */
+  --font-family:                'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs:               11px;
+  --font-size-sm:               12px;
+  --font-size:                  14px;
+  --font-size-md:               16px;
+  --font-size-lg:               18px;
+  --font-size-xl:               24px;
+  --font-size-2xl:              30px;
+  --font-size-3xl:              36px;
+
+  /* Control heights */
+  --control-height-sm:          28px;
+  --control-height:             36px;
+  --control-height-lg:          40px;
+
+  /* Spacing (8px base grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Tenant overrideable (store-only scope) */
+  --tenant-primary:             #1677ff;
+  --tenant-primary-hover:       #4096ff;
+  --tenant-primary-bg:          #e6f4ff;
+}
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --color-primary:              #4096ff;
+  --color-primary-hover:        #69b1ff;
+  --color-primary-active:       #1677ff;
+  --color-primary-bg:           rgba(22,119,255,.15);
+  --color-primary-bg-hover:     rgba(22,119,255,.22);
+  --color-primary-border:       rgba(22,119,255,.40);
+  --color-primary-text:         #91caff;
+
+  --color-bg-layout:            #0a0a0a;
+  --color-bg-container:         #141414;
+  --color-bg-elevated:          #1f1f1f;
+  --color-bg-spotlight:         #262626;
+
+  --color-text:                 rgba(255,255,255,.88);
+  --color-text-secondary:       rgba(255,255,255,.65);
+  --color-text-tertiary:        rgba(255,255,255,.45);
+  --color-text-disabled:        rgba(255,255,255,.25);
+  --color-text-inverse:         #141414;
+
+  --color-border:               #424242;
+  --color-border-secondary:     #303030;
+
+  --color-success:              #73d13d;
+  --color-success-dark:         #95de64;
+  --color-success-bg:           rgba(82,196,26,.12);
+  --color-success-border:       rgba(82,196,26,.30);
+
+  --color-warning:              #ffc53d;
+  --color-warning-dark:         #ffd666;
+  --color-warning-bg:           rgba(250,173,20,.12);
+  --color-warning-border:       rgba(250,173,20,.30);
+
+  --color-error:                #ff7875;
+  --color-error-dark:           #ff4d4f;
+  --color-error-bg:             rgba(255,77,79,.12);
+  --color-error-border:         rgba(255,77,79,.30);
+
+  --color-info:                 #4096ff;
+  --color-info-bg:              rgba(22,119,255,.12);
+  --color-info-border:          rgba(22,119,255,.30);
+
+  --shadow-card:                0 1px 2px rgba(0,0,0,.20), 0 2px 8px rgba(0,0,0,.25);
+  --shadow-elevated:            0 4px 16px rgba(0,0,0,.40), 0 1px 4px rgba(0,0,0,.25);
+  --shadow-focus:               0 0 0 3px rgba(64,150,255,.25);
+}
+
+/* ─── Global Resets ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: 1.5715;
+  color: var(--color-text);
+  background-color: var(--color-bg-layout);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-layout);
+}
+
+/* ─── Utility Classes (design-system scoped) ────────────────────────────────── */
+.ds-card {
+  background: var(--color-bg-container);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.ds-text-primary   { color: var(--color-text); }
+.ds-text-secondary { color: var(--color-text-secondary); }
+.ds-text-tertiary  { color: var(--color-text-tertiary); }
+.ds-text-brand     { color: var(--color-primary); }
+
+.ds-bg-layout    { background-color: var(--color-bg-layout); }
+.ds-bg-container { background-color: var(--color-bg-container); }
+.ds-bg-elevated  { background-color: var(--color-bg-elevated); }
+
+/* ─── Public Pages (replaces the galaxy/teal system) ────────────────────────── */
+.public-hero {
+  background: linear-gradient(135deg, #0d1b3e 0%, #0a3c8c 50%, #0958d9 100%);
+  color: #ffffff;
+}
+
+.public-hero-subtle {
+  background: linear-gradient(180deg, #f5f7fa 0%, #e6f4ff 100%);
+  color: var(--color-text);
+}
+
+.public-section {
+  background: var(--color-bg-container);
+}
+
+.public-section-alt {
+  background: var(--color-bg-layout);
+}
+
+/* ─── Login Page ────────────────────────────────────────────────────────────── */
+.login-brand-panel {
+  background: linear-gradient(160deg, #0d1b3e 0%, #0958d9 100%);
+  color: #ffffff;
+}
+
+/* Galaxy classes are still used by AuthLayout + LoginPage — DO NOT hide them */
+
+/* ─── Tenant-scoped store theme ─────────────────────────────────────────────── */
+/* Applied via <div data-tenant-theme style="--tenant-primary: #7c3aed"> */
+[data-tenant-theme] .store-btn-primary {
+  background-color: var(--tenant-primary);
+  border-color:     var(--tenant-primary);
+  color:            #ffffff;
+}
+
+[data-tenant-theme] .store-btn-primary:hover {
+  background-color: var(--tenant-primary-hover);
+  border-color:     var(--tenant-primary-hover);
+}
+
+[data-tenant-theme] .store-active-link {
+  color: var(--tenant-primary);
+  border-right-color: var(--tenant-primary);
+  background-color: var(--tenant-primary-bg);
+}
+
+[data-tenant-theme] .store-price {
+  color: var(--tenant-primary);
+}

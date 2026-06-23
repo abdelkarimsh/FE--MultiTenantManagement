@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AppstoreOutlined,
   FileTextOutlined,
@@ -52,12 +52,20 @@ const StoreSidebar: React.FC<StoreSidebarProps> = ({
   showToggle = true,
   onNavigate,
 }) => {
+  const [imgError, setImgError] = useState(false);
+  const showImage = tenantLogoUrl && !imgError;
+
   return (
     <aside className="flex h-full flex-col">
       <div className={`mb-3 flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-2 py-2`}>
         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          {tenantLogoUrl ? (
-            <img src={tenantLogoUrl} alt={`${tenantName} logo`} className="h-full w-full object-cover" />
+          {showImage ? (
+            <img
+              src={tenantLogoUrl}
+              alt={`${tenantName} logo`}
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-slate-900 text-xs font-semibold text-white">
               {getInitials(tenantName)}

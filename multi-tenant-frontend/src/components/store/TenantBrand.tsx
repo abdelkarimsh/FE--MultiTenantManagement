@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatStoreSubdomainDisplay } from './subdomainDisplay';
 
 interface TenantBrandProps {
@@ -16,11 +16,19 @@ const getInitials = (name: string) =>
     .join('') || 'ST';
 
 const TenantBrand: React.FC<TenantBrandProps> = ({ name, subDomain, logoUrl }) => {
+  const [imgError, setImgError] = useState(false);
+  const showImage = logoUrl && !imgError;
+
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {logoUrl ? (
-          <img src={logoUrl} alt={`${name} logo`} className="h-full w-full object-cover" />
+        {showImage ? (
+          <img
+            src={logoUrl}
+            alt={`${name} logo`}
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-slate-900 text-sm font-semibold text-white">
             {getInitials(name)}
